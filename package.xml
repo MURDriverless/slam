@@ -1,5 +1,5 @@
 <package format="2">
-  <name>murslam</name>
+  <name>slam</name>
   <version>0.0.0</version>
   <description>The MUR slam package - implements slam for MUR driverless</description>
 

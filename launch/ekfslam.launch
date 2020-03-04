@@ -1,4 +1,3 @@
 <launch>
-    <node pkg="murslam" type="slam" name="ekfslam" output="screen">
-    </node>
+    <node pkg="slam" type="ekfslamrun" name="ekfslamrun.py" output="screen"> </node> 
 </launch>

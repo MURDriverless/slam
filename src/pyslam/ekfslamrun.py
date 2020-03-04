@@ -23,7 +23,7 @@ def main():
 
     sense = racecarSensors(topics)
 
-    rospy.init_node('slam', anonymous=False)
+    rospy.init_node('EKFslam', anonymous=False)
 
     '''
     Call subscribers to various important nodes
