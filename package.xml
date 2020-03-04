@@ -1,0 +1,19 @@
+<package format="2">
+  <name>murslam</name>
+  <version>0.0.0</version>
+  <description>The MUR slam package - implements slam for MUR driverless</description>
+
+  <maintainer email="jmcrobbie@student.unimelb.edu.au">odyssey</maintainer>
+
+  <license>MIT</license>
+
+  <author email="jmcrobbie@student.unimelb.edu.au">Jack McRobbie</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+    <exec_depend>rospy</exec_depend>
+  <build_depend>fssim_common</build_depend>
+  <exec_depend>fssim_common</exec_depend>
+  <export>
+
+  </export>
+</package>

@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="murslam" type="slam" name="ekfslam" output="screen">
+    </node>
+</launch>
