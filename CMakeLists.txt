@@ -29,7 +29,8 @@ catkin_package()
 ## Build talker and listener
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-# To be included if cpp slam is used, currently deleted from repo
-# add_executable(slam src/slam.cpp)
-# target_link_libraries(slam ${catkin_LIBRARIES})
-# add_dependencies(slam slam_cpp)
+add_executable(slam src/cppslam/slamNode.cpp)
+add_library(matrix src/cppslam/matrix/matrix.cpp)
+add_library(matrixUtils src/cppslam/matrix/matrixUtils.cpp)
+add_library(ekf src/cppslam/ekfslam/ekf.cpp)
+target_link_libraries(slam ${catkin_LIBRARIES} matrix matrixUtils ekf)
