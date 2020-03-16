@@ -11,3 +11,18 @@ int main (int argc, char **argv)
 	
 }
 
+
+
+int main(int argc, char **argv)
+{
+	ros::init(argc,argv,"slamNode");
+
+	ros::nodeHandle n; 
+
+	ROS_INFO_STREAM("MUR SLAM: LAUNCHED");
+
+
+	
+	return;
+
+}
