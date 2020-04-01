@@ -16,5 +16,6 @@ int main(int argc, char **argv)
 
 	Matrix X0(4,1);
 	X0.Fill(0.0);
-	slam.runnable(10, X0);	
+	int runtimeHz = 10;
+	slam.runnable(runtimeHz, X0);	
 }
