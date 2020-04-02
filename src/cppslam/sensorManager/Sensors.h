@@ -6,17 +6,24 @@
 #include <iostream>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud2.h>
-class ekfSensor
+#include "ros/ros.h"
+
+struct pointcloud
+{
+	std::string msg_source;
+	int size;
+	double **data;
+} pointcloud;
+class Sensors
 {
 public:
-	ekfSensor()
-	{
-		return;
-	}
-	ekfSensor(ros::NodeHandle n); // constructor type
+	Sensors(ros::NodeHandle n); // constructor type
 
 	void publishMap(Matrix map);
 	void publishOdom(Matrix state);
+
+	void ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data);
+	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
 
 private:
 	//node handles & publishers & subscribers
@@ -27,12 +34,7 @@ private:
 	ros::Subscriber camcld;
 
 	// callbacks
-	void ptcloudclb(const sensor_msgs::PointCloud2ConstPtr &data);
 
-	//static message topic names
-	std::string CAM_TOPIC = "/camera/cloud";
-	std::string LIDAR_TOPIC = "/lidar/cloud";
-	std::string FILTERED_TOPIC = "/slam/map";
-	std::string SLAM_POSE_TOPIC = "/slam/odom";
+	//Ptcloud messages
 };
 #endif

@@ -12,6 +12,7 @@ TODO: EXCEPTION throwing on incorrect dimensions!
 #include "ros/ros.h"
 #include <string.h>
 #include <iostream>
+#include <math.h>
 
 #define NewStackMatrixMacro(name, n_rows, n_cols) \
     double name##_data[n_rows][n_cols];           \
@@ -20,11 +21,6 @@ TODO: EXCEPTION throwing on incorrect dimensions!
 class Matrix
 {
 public:
-    struct complexNumber{
-	    double real;
-	    double im;
-    };
-
     template <int rows, int columns>
     explicit Matrix(double (&data)[rows][columns])
         : data(&data[0][0]), nrows(rows), ncolumns(columns) {}
@@ -45,10 +41,10 @@ public:
             }
         }
     }
-    
+
     Matrix(int rows, int columns)
     {
-        nrows = rows; 
+        nrows = rows;
         ncolumns = columns;
         double *init_data = new double[rows * columns - 1];
         data = init_data;
@@ -136,7 +132,7 @@ public:
     void projection(Matrix &u, Matrix &v);
 
 private:
-    //complex *comp_data; 
+    //complex *comp_data;
     double *data;
     int nrows;
     int ncolumns;

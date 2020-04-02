@@ -10,6 +10,9 @@
   <author email="jmcrobbie@student.unimelb.edu.au">Jack McRobbie</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+    <depend>eigen</depend>
+    <depend>eigen_conversions</depend>
+
     <exec_depend>rospy</exec_depend>
   <build_depend>fssim_common</build_depend>
   <exec_depend>fssim_common</exec_depend>

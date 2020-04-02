@@ -1,21 +1,20 @@
 #include "ros/ros.h"
-#include "std_msgs/String.h"
 #include <sstream>
-#include "ekfslam/ekf.h"
+#include "ekfslam/ekfslam.h"
+#include "matrix/matrix.h"
+#include "matrix/matrixUtils.h"
 
 int main(int argc, char **argv)
 {
-	ros::init(argc,argv,"slamNode");
+	ros::init(argc, argv, "slamNode");
 
-	ros::NodeHandle n; 
+	ros::NodeHandle n;
 
-	ROS_INFO_STREAM("MUR SLAM: LAUNCHED");
+	ekfslam slam(n);
 
+	ROS_INFO_STREAM("EKF SLAM: LAUNCHED");
 
-	ekf slam(n); 
+	slam.runnable();
 
-	Matrix X0(4,1);
-	X0.Fill(0.0);
-	int runtimeHz = 10;
-	slam.runnable(runtimeHz, X0);	
+	return 0;
 }
