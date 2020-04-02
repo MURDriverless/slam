@@ -8,7 +8,7 @@ ekfslam::ekfslam(ros::NodeHandle n)
 
 	int status = 1;
 	nh = n;
-	while (ros::ok)
+	while (ros::ok())
 	{
 		try
 		{
@@ -51,23 +51,25 @@ void ekfslam::runnable()
 	// c.Identity();
 	// x.MultiplyScalar(x, 0.1);
 
-	while (ros::ok)
+	while (ros::ok())
 	{
 		ROS_INFO_STREAM("Running slam!");
 		//do ekf slam things!
 		looprate.sleep(); //enforce rate
 	}
 }
-Matrix ekfslam::motionModel(Matrix &x, Matrix &u)
+Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d &x, Eigen::Matrix2d &u)
 {
-	double theta = x.Get(0, 2);
-	Matrix xp(x.GetNRows(), x.GetNColumns());
-	xp.CopyMatrix(x);
-	xp.Set(0, 0, x.Get(0, 0) + dt * x.Get(0, 3) * cos(theta));
-	xp.Set(0, 0, x.Get(0, 1) + dt * x.Get(0, 3) * sin(theta));
-	xp.Set(0, 2, x.Get(0, 2) + dt * u.Get(0, 1));
-	xp.Set(0, 3, u.Get(0, 0));
-	return xp;
+// 	double theta = x.Get(0, 2);
+// 	Matrix xp(x.GetNRows(), x.GetNColumns());
+// 	xp.CopyMatrix(x);
+// 	xp.Set(0, 0, x.Get(0, 0) + dt * x.Get(0, 3) * cos(theta));
+// 	xp.Set(0, 0, x.Get(0, 1) + dt * x.Get(0, 3) * sin(theta));
+// 	xp.Set(0, 2, x.Get(0, 2) + dt * u.Get(0, 1));
+// 	xp.Set(0, 3, u.Get(0, 0));
+// 	return xp;
+	Eigen::Matrix2d a(2,2);
+	return a;
 }
 int ekfslam::initialiseSubs()
 {

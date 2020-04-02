@@ -1,10 +1,9 @@
 #ifndef EKF_H
 #define EFK_H
-#include "../matrix/matrix.h"
-#include "../matrix/matrixUtils.h"
 #include "ros/ros.h"
 #include <sensor_msgs/PointCloud2.h>
 #include <math.h>
+#include <Eigen/Dense>
 
 class ekfslam
 {
@@ -20,7 +19,7 @@ private:
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	int initialiseSubs();
-	Matrix motionModel(Matrix &x, Matrix &u);
+	Eigen::Matrix2d motionModel(Eigen::Matrix2d &x, Eigen::Matrix2d &u);
 	int stateSize;
 	int controlSize;
 	ros::NodeHandle nh;

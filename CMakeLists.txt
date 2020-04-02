@@ -50,9 +50,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(slamNode src/cppslam/slamNode.cpp)
 
-add_library(matrix src/cppslam/matrix/matrix.cpp)
-add_library(matrixUtils src/cppslam/matrix/matrixUtils.cpp)
 add_library(ekf src/cppslam/ekfslam/ekfslam.cpp)
 
-target_link_libraries(slamNode ${catkin_LIBRARIES} matrix matrixUtils ekf)
+target_link_libraries(slamNode ${catkin_LIBRARIES} ekf)
 

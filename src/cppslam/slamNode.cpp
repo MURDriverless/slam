@@ -1,8 +1,7 @@
 #include "ros/ros.h"
 #include <sstream>
 #include "ekfslam/ekfslam.h"
-#include "matrix/matrix.h"
-#include "matrix/matrixUtils.h"
+#include <Eigen/Dense>
 
 int main(int argc, char **argv)
 {
