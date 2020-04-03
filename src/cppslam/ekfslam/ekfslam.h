@@ -15,11 +15,11 @@ public:
 private:
 	void ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data);
 	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
-
+	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	int initialiseSubs();
-	Eigen::Matrix2d motionModel(Eigen::Matrix2d &x, Eigen::Matrix2d &u);
+	Eigen::Matrix2d motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u);
 	int stateSize;
 	int controlSize;
 	ros::NodeHandle nh;
@@ -30,6 +30,6 @@ private:
 	std::string LIDAR_TOPIC = "/lidar/cones";
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
-	static const int que = 1;
+	static const int que_size = 1;
 };
 #endif

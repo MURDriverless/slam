@@ -34,42 +34,48 @@ void ekfslam::runnable()
 {
 
 	//subscribers
-	camCld = nh.subscribe(CAM_TOPIC, que, &ekfslam::ptcloudclbCam, this);
-	lidarCld = nh.subscribe(LIDAR_TOPIC, que, &ekfslam::ptcloudclbLidar, this);
+	camCld = nh.subscribe(CAM_TOPIC, que_size, &ekfslam::ptcloudclbCam, this);
+	lidarCld = nh.subscribe(LIDAR_TOPIC, que_size, &ekfslam::ptcloudclbLidar, this);
 
 	//Publishers
 	stateSize = 4;
 	int hz = 10;
 	dt = 1.0 / hz;
+ 	Eigen::MatrixXf px(1,stateSize); // predicted mean
+	Eigen::MatrixXf pcv(stateSize,stateSize);// predicted Covariance
+       	Eigen::MatrixXf y(1,stateSize); //innovation measurement residual
+	Eigen::MatrixXf S(stateSize,stateSize); // innovation covariance
+	Eigen::MatrixXf K(stateSize, stateSize); // kalman gain 
+	Eigen::MatrixXf x(1,stateSize); // state
+	Eigen::MatrixXf cv(stateSize,stateSize); //state covariance 
 
 	ros::Rate looprate(hz);
-
-	// Matrix x(stateSize, 1);			//mean or state estimate
-	// Matrix c(stateSize, stateSize); //covariance of state estimate
-
-	// x.CopyMatrix(initialState);
-	// c.Identity();
-	// x.MultiplyScalar(x, 0.1);
 
 	while (ros::ok())
 	{
 		ROS_INFO_STREAM("Running slam!");
+		//get sensors
+
 		//do ekf slam things!
 		looprate.sleep(); //enforce rate
 	}
 }
-Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d &x, Eigen::Matrix2d &u)
+Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u)
 {
-// 	double theta = x.Get(0, 2);
-// 	Matrix xp(x.GetNRows(), x.GetNColumns());
-// 	xp.CopyMatrix(x);
-// 	xp.Set(0, 0, x.Get(0, 0) + dt * x.Get(0, 3) * cos(theta));
-// 	xp.Set(0, 0, x.Get(0, 1) + dt * x.Get(0, 3) * sin(theta));
-// 	xp.Set(0, 2, x.Get(0, 2) + dt * u.Get(0, 1));
-// 	xp.Set(0, 3, u.Get(0, 0));
-// 	return xp;
-	Eigen::Matrix2d a(2,2);
-	return a;
+	/*
+	 MotionModel: 
+	 Uses basic euler motion integration, will have to use actual system 
+	 model for higher speeds Where non-linearities become significant.
+	 */
+	
+	Eigen::Matrix2d x_updated(1,4);
+	double theta = x(0,2);
+	double v = x(0,3); 
+	x_updated(0,0) = x(0,0) + dt * v * cos(theta); 
+	x_updated(0,1) = x(0,1) + dt * v * sin(theta);
+	// x_updated(0,1) = 
+
+	return x_updated;
 }
 int ekfslam::initialiseSubs()
 {
@@ -82,6 +88,10 @@ int ekfslam::initialiseSubs()
 		ROS_ERROR_STREAM(msg);
 		return 0;
 	}
+}
+int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x)
+{
+	return 1; 
 }
 void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data)
 {
