@@ -53,10 +53,11 @@ void ekfslam::runnable()
 
 	while (ros::ok())
 	{
-		ROS_INFO_STREAM("Running slam!");
+		ROS_INFO("Running slam, hopefully at rate %d!", hz);
 		//get sensors
-
+		
 		//do ekf slam things!
+		ros::spinOnce();
 		looprate.sleep(); //enforce rate
 	}
 }
