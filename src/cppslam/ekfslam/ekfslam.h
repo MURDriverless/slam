@@ -4,6 +4,9 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <math.h>
 #include <Eigen/Dense>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
+#include <boost/foreach.hpp>
 
 class ekfslam
 {

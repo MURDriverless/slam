@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs 
     fssim_common
     sensor_msgs
+    pcl_conversions
+    pcl_ros
     )
 catkin_python_setup()
 
@@ -24,6 +26,7 @@ catkin_python_setup()
 
 # Attempt to find Eigen using its own CMake module.
 # If that fails, fall back to cmake_modules package.
+
 find_package(Eigen3)
 set(EIGEN_PACKAGE EIGEN3)
 if(NOT EIGEN3_FOUND)
@@ -33,6 +36,8 @@ if(NOT EIGEN3_FOUND)
   set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
   set(EIGEN_PACKAGE Eigen)
 endif()
+find_package(Boost REQUIRED COMPONENTS thread)
+
 
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++14;-Wall;-Werror")
 add_definitions(-DEIGEN_NO_DEBUG -DEIGEN_MPL2_ONLY)
@@ -46,7 +51,7 @@ DEPENDS
 )
 
 ## Build talker and listener
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_executable(slamNode src/cppslam/slamNode.cpp)
 

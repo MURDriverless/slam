@@ -1,6 +1,7 @@
 #ifndef EKF_CPP
 #define EKF_CPP
 #include "ekfslam.h"
+typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 ekfslam::ekfslam(ros::NodeHandle n)
 {
@@ -57,7 +58,6 @@ void ekfslam::runnable()
 		//get sensors
 		
 		//do ekf slam things!
-		ros::spinOnce();
 		looprate.sleep(); //enforce rate
 	}
 }
@@ -94,14 +94,16 @@ int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x)
 {
 	return 1; 
 }
-void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data)
+void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr& data)
 {
-	ROS_INFO_STREAM("Camera ptcloud recieved");
+	printf("Cloud: width = %d, height = %d", data->width, data->height);
+		BOOST_FOREACH (const pcl::PointXYZ & pt, data->points )
+	printf("\t (%f %f %f)\n", pt.x,pt.y,pt.z);
 	return;
 }
 void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
 {
-	ROS_INFO_STREAM("Lidar ptcloud recieved");
+	ROS_INFO("Lidar ptcloud recieved");
 	return;
 }
 #endif
