@@ -51,12 +51,12 @@ void ekfslam::runnable()
 	Eigen::MatrixXf cv(stateSize,stateSize); //state covariance 
 
 	ros::Rate looprate(hz);
-
 	while (ros::ok())
 	{
-		ROS_INFO("Running slam, hopefully at rate %d!", hz);
+	//	ROS_INFO("Running slam, hopefully at rate %d!", hz);
 		//get sensors
 		
+		ros::spinOnce();
 		//do ekf slam things!
 		looprate.sleep(); //enforce rate
 	}
@@ -100,6 +100,8 @@ void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr& data)
 	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
 	pcl::PCLPointCloud2 cloud_filtered; 
 	pcl_conversions::toPCL(*data, *cloud); 
+	ROS_INFO("Height of array: %d", cloud->height);
+	ROS_INFO("Width of array: %d", cloud->width);
 	return;
 }
 void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
@@ -108,7 +110,8 @@ void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
 	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
 	pcl::PCLPointCloud2 cloud_filtered; 
 	pcl_conversions::toPCL(*data, *cloud); 
-	
-	return;
+	ROS_INFO("Height of array: %d", cloud->height);
+	ROS_INFO("Width of array: %d", cloud->width);
+	return; 
 }
 #endif
