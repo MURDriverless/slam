@@ -96,14 +96,19 @@ int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x)
 }
 void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr& data)
 {
-	printf("Cloud: width = %d, height = %d", data->width, data->height);
-		BOOST_FOREACH (const pcl::PointXYZ & pt, data->points )
-	printf("\t (%f %f %f)\n", pt.x,pt.y,pt.z);
+	pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
+	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
+	pcl::PCLPointCloud2 cloud_filtered; 
+	pcl_conversions::toPCL(*data, *cloud); 
 	return;
 }
 void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
 {
-	ROS_INFO("Lidar ptcloud recieved");
+	pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
+	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
+	pcl::PCLPointCloud2 cloud_filtered; 
+	pcl_conversions::toPCL(*data, *cloud); 
+	
 	return;
 }
 #endif
