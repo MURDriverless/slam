@@ -72,9 +72,12 @@ Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u)
 	Eigen::Matrix2d x_updated(1,4);
 	double theta = x(0,2);
 	double v = x(0,3); 
+	double theta_dot = x(0,4);
 	x_updated(0,0) = x(0,0) + dt * v * cos(theta); 
 	x_updated(0,1) = x(0,1) + dt * v * sin(theta);
-	// x_updated(0,1) = 
+	x_updated(0,2) = theta + dt * theta_dot;
+	x_updated(0,3) = u(0,0); // velocity commanded,
+	x_updated(0,4) = u(0,1); // angular velocity commanded.
 
 	return x_updated;
 }
