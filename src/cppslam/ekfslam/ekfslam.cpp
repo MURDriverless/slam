@@ -1,6 +1,7 @@
 #ifndef EKF_CPP
 #define EKF_CPP
 #include "ekfslam.h"
+
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 ekfslam::ekfslam(ros::NodeHandle n)
@@ -26,6 +27,12 @@ ekfslam::ekfslam(ros::NodeHandle n)
 		}
 	}
 }
+void ekfslam::controlclb(std_msgs::String msg)
+{
+	ROS_INFO_STREAM("Control callback");
+
+	return; 
+}
 /* Some definitions of state
  * x = {x,y,theta,velocity}^T
  * u = {velocity, angular velocity}
@@ -37,7 +44,7 @@ void ekfslam::runnable()
 	//subscribers
 	camCld = nh.subscribe(CAM_TOPIC, que_size, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, que_size, &ekfslam::ptcloudclbLidar, this);
-
+	control = nh.subscribe("/Cmd_vel", que_size, &ekfslam::controlclb, this); 
 	//Publishers
 	stateSize = 4;
 	int hz = 10;
@@ -49,25 +56,24 @@ void ekfslam::runnable()
 	Eigen::MatrixXf K(stateSize, stateSize); // kalman gain 
 	Eigen::MatrixXf x(1,stateSize); // state
 	Eigen::MatrixXf cv(stateSize,stateSize); //state covariance 
-
+	Eigen::MatrixXf u(1,2);
 	ros::Rate looprate(hz);
 	while (ros::ok())
 	{
-		ROS_INFO("Running slam, hopefully at rate %d!", hz);
+		ROS_INFO("Running slam at rate %d!", hz);
 		//get sensors
-		
+		ekfslam::motionModel();
 		ros::spinOnce();
-		//do ekf slam things!
+		
 		looprate.sleep(); //enforce rate
 	}
 }
-Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u)
+void ekfslam::motionModel()
 {
 	/*
 	MotionModel: 
 	Uses basic euler motion integration, will have to use actual system 
 	model for higher speeds Where non-linearities become significant.
-	*/
 	
 	Eigen::Matrix2d x_updated(1,4);
 	double theta = x(0,2);
@@ -80,7 +86,9 @@ Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u)
 	x_updated(0,4) = u(0,1); // angular velocity commanded.
 
 	return x_updated;
+	*/
 }
+
 int ekfslam::initialiseSubs()
 {
 	try

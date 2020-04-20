@@ -7,10 +7,11 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <boost/foreach.hpp>
-
+#include "std_msgs/String.h"
+#include <tuple>
+  
 class ekfslam
 {
-
 public:
 	ekfslam(ros::NodeHandle n);
 	void runnable();
@@ -18,11 +19,15 @@ public:
 private:
 	void ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data);
 	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
-	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
+	void controlclb(std_msgs::String msg);
+
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
+	ros::Subscriber control; 
+
+	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	int initialiseSubs();
-	Eigen::Matrix2d motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u);
+	void motionModel();
 	int stateSize;
 	int controlSize;
 	ros::NodeHandle nh;
@@ -34,5 +39,6 @@ private:
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
 	static const int que_size = 1;
+
 };
 #endif
