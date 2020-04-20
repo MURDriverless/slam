@@ -53,7 +53,7 @@ void ekfslam::runnable()
 	ros::Rate looprate(hz);
 	while (ros::ok())
 	{
-	//	ROS_INFO("Running slam, hopefully at rate %d!", hz);
+		ROS_INFO("Running slam, hopefully at rate %d!", hz);
 		//get sensors
 		
 		ros::spinOnce();
@@ -64,10 +64,10 @@ void ekfslam::runnable()
 Eigen::Matrix2d ekfslam::motionModel(Eigen::Matrix2d x, Eigen::Matrix2d u)
 {
 	/*
-	 MotionModel: 
-	 Uses basic euler motion integration, will have to use actual system 
-	 model for higher speeds Where non-linearities become significant.
-	 */
+	MotionModel: 
+	Uses basic euler motion integration, will have to use actual system 
+	model for higher speeds Where non-linearities become significant.
+	*/
 	
 	Eigen::Matrix2d x_updated(1,4);
 	double theta = x(0,2);
@@ -100,8 +100,6 @@ void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr& data)
 	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
 	pcl::PCLPointCloud2 cloud_filtered; 
 	pcl_conversions::toPCL(*data, *cloud); 
-	ROS_INFO("Height of array: %d", cloud->height);
-	ROS_INFO("Width of array: %d", cloud->width);
 	return;
 }
 void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
@@ -110,8 +108,6 @@ void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
 	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
 	pcl::PCLPointCloud2 cloud_filtered; 
 	pcl_conversions::toPCL(*data, *cloud); 
-	ROS_INFO("Height of array: %d", cloud->height);
-	ROS_INFO("Width of array: %d", cloud->width);
 	return; 
 }
 #endif
