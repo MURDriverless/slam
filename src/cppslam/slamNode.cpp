@@ -3,6 +3,9 @@
 #include "ekfslam/ekfslam.h"
 #include <Eigen/Dense>
 
+#define STATE_SIZE 5
+#define HZ 10
+
 int main(int argc, char **argv)
 {
 /* High level manager for the slam node. 
@@ -13,7 +16,7 @@ Currently only has ekf slam.
 
 	ros::NodeHandle n;
 
-	ekfslam slam(n);
+	ekfslam slam(n,STATE_SIZE, HZ);
 
 	ROS_INFO_STREAM("EKF SLAM: LAUNCHED");
 

@@ -4,16 +4,48 @@
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
-ekfslam::ekfslam(ros::NodeHandle n)
+
+void ekfslam::launchSubscribers(){
+	//subscribers
+	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
+	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
+	control = nh.subscribe("/Cmd_vel", QUE_SIZE, &ekfslam::controlclb, this); 
+	return;
+}
+void ekfslam::launchPublishers(){
+	// track = nh.advertise<>; 
+	// pose;  
+	return; 
+}
+ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
 	ROS_INFO_STREAM("Extended Kalman filter created");
 
 	int status = 1;
 	nh = n;
+	STATE_SIZE = state_size;
+	dt = 1.0/hz; //define the frequency of the system 
+	HZ = hz;
+	// defining the state shape at initialization
+	Eigen::MatrixXf px(1,stateSize); // predicted mean
+	Eigen::MatrixXf pcv(stateSize,stateSize);// predicted Covariance
+
+	Eigen::MatrixXf y(1,stateSize); //innovation measurement residual
+	Eigen::MatrixXf S(stateSize,stateSize); // innovation covariance
+	Eigen::MatrixXf K(stateSize, stateSize); // kalman gain 
+
+	Eigen::MatrixXf x(1,stateSize); // state
+	Eigen::MatrixXf cv(stateSize,stateSize); //state covariance 
+	Eigen::MatrixXf u(1,2);
 	while (ros::ok())
 	{
 		try
 		{
+			// Launching Subscribers and Publishers
+
+			launchSubscribers();
+			launchPublishers(); 
+
 			if (!status)
 			{
 				throw "FAILED TO SUBSCRIBE TO SENSORS";
@@ -41,53 +73,42 @@ void ekfslam::controlclb(std_msgs::String msg)
 void ekfslam::runnable()
 {
 
-	//subscribers
-	camCld = nh.subscribe(CAM_TOPIC, que_size, &ekfslam::ptcloudclbCam, this);
-	lidarCld = nh.subscribe(LIDAR_TOPIC, que_size, &ekfslam::ptcloudclbLidar, this);
-	control = nh.subscribe("/Cmd_vel", que_size, &ekfslam::controlclb, this); 
-	//Publishers
-	stateSize = 4;
-	int hz = 10;
-	dt = 1.0 / hz;
- 	Eigen::MatrixXf px(1,stateSize); // predicted mean
-	Eigen::MatrixXf pcv(stateSize,stateSize);// predicted Covariance
-       	Eigen::MatrixXf y(1,stateSize); //innovation measurement residual
-	Eigen::MatrixXf S(stateSize,stateSize); // innovation covariance
-	Eigen::MatrixXf K(stateSize, stateSize); // kalman gain 
-	Eigen::MatrixXf x(1,stateSize); // state
-	Eigen::MatrixXf cv(stateSize,stateSize); //state covariance 
-	Eigen::MatrixXf u(1,2);
-	ros::Rate looprate(hz);
+	ros::Rate looprate(HZ);
 	while (ros::ok())
 	{
-		ROS_INFO("Running slam at rate %d!", hz);
+		ROS_INFO("Running slam at rate %d!", HZ);
 		//get sensors
-		ekfslam::motionModel();
+		ekfslam::motionModel(x, u);
 		ros::spinOnce();
 		
 		looprate.sleep(); //enforce rate
 	}
 }
-void ekfslam::motionModel()
+Eigen::Matrix2d  ekfslam::motionModel(Eigen::MatrixXf x, Eigen::MatrixXf u)
 {
 	/*
 	MotionModel: 
 	Uses basic euler motion integration, will have to use actual system 
 	model for higher speeds Where non-linearities become significant.
-	
+	*/
+
 	Eigen::Matrix2d x_updated(1,4);
 	double theta = x(0,2);
 	double v = x(0,3); 
 	double theta_dot = x(0,4);
-	x_updated(0,0) = x(0,0) + dt * v * cos(theta); 
-	x_updated(0,1) = x(0,1) + dt * v * sin(theta);
-	x_updated(0,2) = theta + dt * theta_dot;
-	x_updated(0,3) = u(0,0); // velocity commanded,
-	x_updated(0,4) = u(0,1); // angular velocity commanded.
+	px = Eigen::MatrixXf(x);
+
+	px(0,0) = x(0,0) + dt * v * cos(theta); 
+	px(0,1) = x(0,1) + dt * v * sin(theta);
+	px(0,2) = theta + dt * theta_dot;
+	px(0,3) = u(0,0); // velocity commanded,
+	px(0,4) = u(0,1); // angular velocity commanded.
+	
+	// all landmarks in the state variable list are not needed
 
 	return x_updated;
-	*/
 }
+
 
 int ekfslam::initialiseSubs()
 {
