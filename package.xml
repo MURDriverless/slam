@@ -10,14 +10,19 @@
   <author email="jmcrobbie@student.unimelb.edu.au">Jack McRobbie</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-    <depend>eigen</depend>
-    <depend>eigen_conversions</depend>
-    <build_depend>libpcl-all-dev</build_depend>
   
-  <exec_depend>libpcl-all</exec_depend>
-  <exec_depend>rospy</exec_depend>
+  <depend>eigen</depend>
+  <depend>eigen_conversions</depend>
   <build_depend>fssim_common</build_depend>
+  <build_depend> mur_common </build_depend>
+
+  <build_export_depend>mur_common</build_export_depend>
+
+  <exec_depend>rospy</exec_depend>
   <exec_depend>fssim_common</exec_depend>
+
+  <exec_depend>mur_common</exec_depend>
+
   <export>
 
   </export>

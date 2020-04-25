@@ -4,13 +4,11 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <math.h>
 #include <Eigen/Dense>
-#include <pcl_ros/point_cloud.h>
-#include <pcl/point_types.h>
-#include <boost/foreach.hpp>
 #include "std_msgs/String.h"
 #include "geometry_msgs/Pose2D.h"  
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "../point/point.h"
+#include "mur_common/cone_msg.h"
 
 class ekfslam
 {
@@ -23,8 +21,7 @@ private:
 	void launchSubscribers();
 	void launchPublishers(); 
 
-	void ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data);
-	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
+	void ptcloudclbCam(const boost::shared_ptr<const sensor_msgs::PointCloud2>& input);	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
 	void controlclb(std_msgs::String msg);
 	
 	ros::Subscriber camCld;
@@ -39,7 +36,7 @@ private:
 	void motionModel();
 	
 	
-	int stateSize;
+	int STATE_SIZE;
 	int controlSize;
 	ros::NodeHandle nh;
 	double dt;
@@ -51,8 +48,6 @@ private:
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
 
-
-	int STATE_SIZE;
 	// Arrays & vectors that define the EKF 
 	Eigen::MatrixXf px; // predicted mean
 	Eigen::MatrixXf pcv;// predicted Covariance

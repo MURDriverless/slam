@@ -13,19 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs 
     fssim_common
     sensor_msgs
-    pcl_conversions
-    pcl_ros
+    mur_common
     )
 catkin_python_setup()
 
-## Declare ROS messages and services
-
-
-## Generate added messages and services
-# generate_messages(DEPENDENCIES std_msgs fssim_common sensor_msgs)
-
-# Attempt to find Eigen using its own CMake module.
-# If that fails, fall back to cmake_modules package.
 
 find_package(Eigen3)
 set(EIGEN_PACKAGE EIGEN3)
@@ -50,7 +41,6 @@ DEPENDS
     ${EIGEN_PACKAGE}
 )
 
-## Build talker and listener
 include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_executable(slamNode src/cppslam/slamNode.cpp)

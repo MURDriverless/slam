@@ -2,9 +2,6 @@
 #define EKF_CPP
 #include "ekfslam.h"
 
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-
-
 void ekfslam::launchSubscribers(){
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
@@ -132,20 +129,13 @@ int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x)
 {
 	return 1; 
 }
-void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr& data)
+void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data)
 {
-	pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
-	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
-	pcl::PCLPointCloud2 cloud_filtered; 
-	pcl_conversions::toPCL(*data, *cloud); 
 	return;
 }
+
 void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
 {
-	pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
-	pcl::PCLPointCloud2ConstPtr cloud_ptr; 
-	pcl::PCLPointCloud2 cloud_filtered; 
-	pcl_conversions::toPCL(*data, *cloud); 
 	return; 
 }
 #endif
