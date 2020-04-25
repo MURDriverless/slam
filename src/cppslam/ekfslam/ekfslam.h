@@ -8,8 +8,9 @@
 #include <pcl/point_types.h>
 #include <boost/foreach.hpp>
 #include "std_msgs/String.h"
-#include <tuple>
-  
+#include "geometry_msgs/Pose2D.h"  
+
+
 class ekfslam
 {
 public:

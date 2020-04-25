@@ -12,11 +12,14 @@ void ekfslam::launchSubscribers(){
 	control = nh.subscribe("/Cmd_vel", QUE_SIZE, &ekfslam::controlclb, this); 
 	return;
 }
+
 void ekfslam::launchPublishers(){
-	// track = nh.advertise<>; 
-	// pose;  
+
+	track = nh.advertise<sensor_msgs::PointCloud2>(FILTERED_TOPIC, QUE_SIZE); 
+	pose = nh.advertise<geometry_msgs::Pose2D>(SLAM_POSE_TOPIC, QUE_SIZE);	  
 	return; 
 }
+
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
 	ROS_INFO_STREAM("Extended Kalman filter created");
