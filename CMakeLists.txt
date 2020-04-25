@@ -55,9 +55,8 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_executable(slamNode src/cppslam/slamNode.cpp)
 
-add_library(
-  ekf src/cppslam/ekfslam/ekfslam.cpp
-  discreteBayes src/cppslam/discreteBayes/discreteBayes.cpp)
+add_library(ekf src/cppslam/ekfslam/ekfslam.cpp)
+add_library(discreteBayes src/cppslam/discreteBayesFilter/discreteBayes.cpp)
 
 target_link_libraries(slamNode ${catkin_LIBRARIES} ekf discreteBayes)
 
