@@ -9,10 +9,12 @@
 #include <boost/foreach.hpp>
 #include "std_msgs/String.h"
 #include "geometry_msgs/Pose2D.h"  
-
+#include "../discreteBayesFilter/discreteBayes.h"
+#include "../point/point.h"
 
 class ekfslam
 {
+	
 public:
 	ekfslam(ros::NodeHandle n, int state_size, int hz);
 	void runnable();
@@ -25,16 +27,18 @@ private:
 	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
 	void controlclb(std_msgs::String msg);
 	
-	
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	ros::Subscriber control;
 	ros::Publisher track; 
 	ros::Publisher pose;  
 
-	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	int initialiseSubs();
-	Eigen::Matrix2d  motionModel(Eigen::MatrixXf x, Eigen::MatrixXf u);
+	
+	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
+	void motionModel();
+	
+	
 	int stateSize;
 	int controlSize;
 	ros::NodeHandle nh;
@@ -60,6 +64,8 @@ private:
 	Eigen::MatrixXf x; // state
 	Eigen::MatrixXf cv; //state covariance 
 	Eigen::MatrixXf u;
+
+	discreteBayes coneExistence[500]; 
 
 	static const int QUE_SIZE = 1;
 

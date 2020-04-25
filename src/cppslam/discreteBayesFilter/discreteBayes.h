@@ -23,7 +23,7 @@ class discreteBayes{
         }
         
         /* Default Constructor */
-        discreteBayes() : l_0(0.0) {}
+        discreteBayes() : l_0(1.0) {}
         
         void update(bool measured, double p_measured);
         void initialize(double p_measured); 

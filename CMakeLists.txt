@@ -57,6 +57,7 @@ add_executable(slamNode src/cppslam/slamNode.cpp)
 
 add_library(ekf src/cppslam/ekfslam/ekfslam.cpp)
 add_library(discreteBayes src/cppslam/discreteBayesFilter/discreteBayes.cpp)
+add_library(point src/cppslam/point/point.cpp)
 
 target_link_libraries(slamNode ${catkin_LIBRARIES} ekf discreteBayes)
 
