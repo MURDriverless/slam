@@ -26,7 +26,8 @@ class pc2Conversions:
         dat = pc2.read_points(msg,
                               field_names=("x", "y", "z"),
                               skip_nans=True)
-        arr = list(dat)
+        msg = self.convertToMessage(list(dat))
+        self.pub1.publish(msg)
         return
 
     def clbk2(self, msg):
@@ -34,8 +35,8 @@ class pc2Conversions:
                               field_names=("x", "y", "z"),
                               skip_nans=True)
         arr = np.array(list(dat))
-        rospy.loginfo(arr[:])
-
+        msg = self.convertToMessage(list(dat))
+        self.pub2.publish(msg)
         return
 
     def convertToMessage(self, data):
@@ -51,7 +52,7 @@ class pc2Conversions:
         msg.y = y_list
         msg.colour = colour_list
         msg.header.frame_id = "base_link"
-        return
+        return msg
 
 
 if __name__ == '__main__':
