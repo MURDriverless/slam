@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
     genmsg 
     geometry_msgs 
     fssim_common
+    message_generation
     sensor_msgs
     mur_common
     )
@@ -51,3 +52,4 @@ add_library(point src/cppslam/point/point.cpp)
 
 target_link_libraries(slamNode ${catkin_LIBRARIES} ekf discreteBayes)
 
+add_dependencies(slamNode ${catkin_EXPORTED_TARGETS})

@@ -3,7 +3,7 @@
 	<node pkg = "slam" type = "slamNode" name = "slamNode" output = "screen" ></node>
 
 
-    <node pkg="slam" name="convert_clouds.py" type="convert_clouds.py" output="screen"></node>
+    <node pkg="slam" name="pc2Conversions" type="pc2Conversions.py" output="screen"></node>
 
 
 </launch>

@@ -15,8 +15,7 @@
   <depend>eigen_conversions</depend>
   <build_depend>fssim_common</build_depend>
   <build_depend> mur_common </build_depend>
-
-  <build_export_depend>mur_common</build_export_depend>
+  <build_depend>rospy</build_depend>
 
   <exec_depend>rospy</exec_depend>
   <exec_depend>fssim_common</exec_depend>
