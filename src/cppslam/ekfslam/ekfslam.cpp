@@ -133,9 +133,14 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
 	int length_x = data.x.size();
 	int length_y = data.y.size(); 
+
 	// test here for length equality, otherwise bugs will occur. 
-	assert (length_x == length_y); 
+	if (length_x == 0) return;
+	assert (length_x == length_y);
+	ROS_INFO("cam callback %d", length_y);
+	
 	z_cam = Eigen::MatrixXf::Zero(3,length_x);
+	
 	for (int i = 0; i <length_x; i++){
 		z_cam(0,i) = data.x[i];
 		z_cam(1,i) = data.y[i];
@@ -147,14 +152,19 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 {
 	int length_x = data.x.size();
-	int length_y = data.y.size(); 
+	int length_y = data.y.size();
+
 	// test here for length equality, otherwise bugs will occur. 
-	assert (length_x == length_y); 
+	if (length_x == 0) return;
+	assert (length_x == length_y);
+
+	ROS_INFO("ptc callback %d",length_x);
+	
 	z_lid = Eigen::MatrixXf::Zero(3,length_x);
 	for (int i = 0; i <length_x; i++){
-		z_cam(0,i) = data.x[i];
-		z_cam(1,i) = data.y[i];
-		z_cam(2,i) = 0;
+		z_lid(0,i) = data.x[i];
+		z_lid(1,i) = data.y[i];
+		z_lid(2,i) = 0;
 	}
 	return;
 }

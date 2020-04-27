@@ -13,31 +13,31 @@ import numpy as np
 class pc2Conversions:
     def __init__(self, topic1, topic2):
         self.sub1 = rospy.Subscriber(
-            topic1, PointCloud2, self.clbk1, queue_size=1)
+            topic1, PointCloud2, self.clbk1, queue_size=10)
         self.sub2 = rospy.Subscriber(
-            topic2, PointCloud2, self.clbk2, queue_size=1)
+            topic2, PointCloud2, self.clbk2, queue_size=10)
 
         self.pub1 = rospy.Publisher(
-            topic1 + "/cone_msg", cone_msg, queue_size=10)
+            topic1 + "/cone_msg", cone_msg, queue_size=1)
         self.pub2 = rospy.Publisher(
-            topic2 + "/cone_msg", cone_msg, queue_size=10)
+            topic2 + "/cone_msg", cone_msg, queue_size=1)
 
     def clbk1(self, msg):
         dat = pc2.read_points(msg,
                               field_names=("x", "y", "z"),
                               skip_nans=True)
         msg = self.convertToMessage(list(dat))
+
         self.pub1.publish(msg)
-        return
 
     def clbk2(self, msg):
         dat = pc2.read_points(msg,
                               field_names=("x", "y", "z"),
                               skip_nans=True)
-        arr = np.array(list(dat))
-        msg = self.convertToMessage(list(dat))
+        arr = list(dat)
+        msg = self.convertToMessage(arr)
+
         self.pub2.publish(msg)
-        return
 
     def convertToMessage(self, data):
         msg = cone_msg()

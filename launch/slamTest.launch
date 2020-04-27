@@ -1,6 +1,5 @@
 
 <launch>
-	<node pkg = "slam" type = "slamNode" name = "slamNode" output = "screen" ></node>
 
 
     <node pkg="slam" name="pc2Conversions" type="pc2Conversions.py" output="screen"></node>
@@ -14,5 +13,6 @@
     </include>
 
     <include file="$(find fssim)/launch/rviz.launch"/>
+	<node pkg = "slam" type = "slamNode" name = "slamNode" output = "screen" ></node>
 
 </launch>
