@@ -9,6 +9,7 @@
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "../point/point.h"
 #include "mur_common/cone_msg.h"
+#include <cassert>
 
 class ekfslam
 {
@@ -21,7 +22,8 @@ private:
 	void launchSubscribers();
 	void launchPublishers(); 
 
-	void ptcloudclbCam(const boost::shared_ptr<const sensor_msgs::PointCloud2>& input);	void ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data);
+	void ptcloudclbCam(const mur_common::cone_msg &data);	
+	void ptcloudclbLidar(const mur_common::cone_msg &data);
 	void controlclb(std_msgs::String msg);
 	
 	ros::Subscriber camCld;
@@ -43,8 +45,9 @@ private:
 	int HZ; 
 
 	//static message topic names
-	std::string CAM_TOPIC = "/camera/cones";
-	std::string LIDAR_TOPIC = "/lidar/cones";
+	std::string CONE_MSG = "/cone_msg";
+	std::string CAM_TOPIC = "/camera/cones" + CONE_MSG;
+	std::string LIDAR_TOPIC = "/lidar/cones" + CONE_MSG;
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
 
@@ -59,6 +62,10 @@ private:
 	Eigen::MatrixXf x; // state
 	Eigen::MatrixXf cv; //state covariance 
 	Eigen::MatrixXf u;
+
+	Eigen::MatrixXf z_cam; 
+	Eigen::MatrixXf z_lid; 
+	
 
 	discreteBayes coneExistence[500]; 
 

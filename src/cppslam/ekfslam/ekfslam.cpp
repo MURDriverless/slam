@@ -80,7 +80,7 @@ void ekfslam::runnable()
 	while (ros::ok())
 	{
 
-		ROS_INFO("Running slam at rate %d!", HZ);
+		// ROS_INFO("Running slam at rate %d!", HZ);
 		
 		ekfslam::motionModel();
 
@@ -129,13 +129,33 @@ int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x)
 {
 	return 1; 
 }
-void ekfslam::ptcloudclbCam(const sensor_msgs::PointCloud2ConstPtr &data)
+void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
+	int length_x = data.x.size();
+	int length_y = data.y.size(); 
+	// test here for length equality, otherwise bugs will occur. 
+	assert (length_x == length_y); 
+	z_cam = Eigen::MatrixXf::Zero(3,length_x);
+	for (int i = 0; i <length_x; i++){
+		z_cam(0,i) = data.x[i];
+		z_cam(1,i) = data.y[i];
+		z_cam(2,i) = 0;
+	}
 	return;
 }
 
-void ekfslam::ptcloudclbLidar(const sensor_msgs::PointCloud2ConstPtr &data)
+void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 {
-	return; 
+	int length_x = data.x.size();
+	int length_y = data.y.size(); 
+	// test here for length equality, otherwise bugs will occur. 
+	assert (length_x == length_y); 
+	z_lid = Eigen::MatrixXf::Zero(3,length_x);
+	for (int i = 0; i <length_x; i++){
+		z_cam(0,i) = data.x[i];
+		z_cam(1,i) = data.y[i];
+		z_cam(2,i) = 0;
+	}
+	return;
 }
 #endif
