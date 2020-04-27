@@ -7,9 +7,9 @@
 #include "std_msgs/String.h"
 #include "geometry_msgs/Pose2D.h"  
 #include "../discreteBayesFilter/discreteBayes.h"
-#include "../point/point.h"
 #include "mur_common/cone_msg.h"
 #include <cassert>
+#include <vector>
 
 class ekfslam
 {
@@ -36,7 +36,7 @@ private:
 	
 	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	void motionModel();
-	void ekfslam::computeJacobian(); 
+	void computeJacobian(); 
 
 	int STATE_SIZE;
 	int controlSize;
@@ -71,9 +71,8 @@ private:
 
 	int lm_num; // keeps track of the number of landmarks  
 	
-
-	discreteBayes coneExistence[500]; 
-
+	std::vector<std::vector <discreteBayes> > coneExistence;
+	
 	static const int QUE_SIZE = 1;
 
 };
