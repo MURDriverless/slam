@@ -19,8 +19,8 @@ public:
 	void runnable();
 
 private:
-	void launchSubscribers();
-	void launchPublishers(); 
+	int launchSubscribers();
+	int  launchPublishers(); 
 
 	void ptcloudclbCam(const mur_common::cone_msg &data);	
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
@@ -36,8 +36,8 @@ private:
 	
 	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	void motionModel();
-	
-	
+	void ekfslam::computeJacobian(); 
+
 	int STATE_SIZE;
 	int controlSize;
 	ros::NodeHandle nh;
@@ -63,8 +63,13 @@ private:
 	Eigen::MatrixXf cv; //state covariance 
 	Eigen::MatrixXf u;
 
+	Eigen::MatrixXf F; // Jacobian Matrix
+	Eigen::MatrixXf Q; // 
+
 	Eigen::MatrixXf z_cam; 
-	Eigen::MatrixXf z_lid; 
+	Eigen::MatrixXf z_lid;
+
+	int lm_num; // keeps track of the number of landmarks  
 	
 
 	discreteBayes coneExistence[500]; 

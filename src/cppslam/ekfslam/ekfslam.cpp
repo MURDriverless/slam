@@ -2,22 +2,35 @@
 #define EKF_CPP
 #include "ekfslam.h"
 
-void ekfslam::launchSubscribers(){
+int ekfslam::launchSubscribers(){
+	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
 	control = nh.subscribe("/Cmd_vel", QUE_SIZE, &ekfslam::controlclb, this); 
-	return;
+	}
+	catch (const char *msg){
+		ROS_ERROR_STREAM(msg);
+		return 0; // failure
+	}
+	return 1;
 }
 
-void ekfslam::launchPublishers(){
+int ekfslam::launchPublishers(){
+	try {
 	track = nh.advertise<sensor_msgs::PointCloud2>(FILTERED_TOPIC, QUE_SIZE); 
 	pose = nh.advertise<geometry_msgs::Pose2D>(SLAM_POSE_TOPIC, QUE_SIZE);	  
-	return; 
+	}
+	catch(const char *msg){
+		ROS_ERROR_STREAM(msg);
+		return 0; //failure
+	}
+	return 1; 
 }
 
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
 	ROS_INFO_STREAM("Extended Kalman filter created");
+	lm_num = 0;
 
 	int status = 1;
 	nh = n;
@@ -42,8 +55,8 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 		{
 			// Launching Subscribers and Publishers
 
-			launchSubscribers();
-			launchPublishers(); 
+			status *= launchSubscribers();
+			status *= launchPublishers(); 
 
 			if (!status)
 			{
@@ -78,11 +91,15 @@ void ekfslam::runnable()
 
 	ros::Rate looprate(HZ);
 	while (ros::ok())
-	{
-
-		// ROS_INFO("Running slam at rate %d!", HZ);
-		
+	{	// Predict!
+		// Updates Prediected mean
 		ekfslam::motionModel();
+		ekfslam::computeJacobian();
+		// Update Predicted Covariance
+
+
+		// Process Sensor Msgs.
+		//Process 		
 
 		ros::spinOnce();
 		
@@ -125,10 +142,6 @@ int ekfslam::initialiseSubs()
 		return 0;
 	}
 }
-int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x)
-{
-	return 1; 
-}
 void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
 	int length_x = data.x.size();
@@ -137,10 +150,8 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 	// test here for length equality, otherwise bugs will occur. 
 	if (length_x == 0) return;
 	assert (length_x == length_y);
-	ROS_INFO("cam callback %d", length_y);
-	
 	z_cam = Eigen::MatrixXf::Zero(3,length_x);
-	
+
 	for (int i = 0; i <length_x; i++){
 		z_cam(0,i) = data.x[i];
 		z_cam(1,i) = data.y[i];
@@ -158,14 +169,24 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 	if (length_x == 0) return;
 	assert (length_x == length_y);
 
-	ROS_INFO("ptc callback %d",length_x);
-	
 	z_lid = Eigen::MatrixXf::Zero(3,length_x);
 	for (int i = 0; i <length_x; i++){
 		z_lid(0,i) = data.x[i];
 		z_lid(1,i) = data.y[i];
 		z_lid(2,i) = 0;
 	}
+	return;
+}
+void ekfslam::computeJacobian(){
+	// computes Jacobian of state
+	F = Eigen::MatrixXf::Identity(STATE_SIZE + lm_num,STATE_SIZE + lm_num );
+	double v = x(0,3);
+	double theta = x(0,2);
+	F(0,2) = -dt *v * sin(theta);
+	F(0,3) = dt * sin(theta);
+	F(1,2) = dt * v * cos(theta);
+	F(1,3) = dt * sin(theta);
+	F(2,4) = dt; 
 	return;
 }
 #endif
