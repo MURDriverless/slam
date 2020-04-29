@@ -189,4 +189,7 @@ void ekfslam::computeJacobian(){
 	F(2,4) = dt; 
 	return;
 }
+void ekfslam::associateMeasurements(){
+	return;
+}
 #endif

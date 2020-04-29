@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 '''
-Python script that generates cone_msgs from point clouds
-Might add this to the forked fssim at some point.
+Python script that generates cone_msgs from point clouds Msgs.
 '''
-import rospy
-from sensor_msgs.msg import PointCloud2
-import sensor_msgs.point_cloud2 as pc2
-from mur_common.msg import cone_msg
 import numpy as np
+import rospy
+import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import PointCloud2
+
+from mur_common.msg import cone_msg
 
 
 class pc2Conversions:
