@@ -26,18 +26,61 @@ int ekfslam::launchPublishers(){
 	}
 	return 1; 
 }
+void ekfslam::processMeasurements(){
+	/* This function processes the measurements and associates them into a 
+		h mapping
+	 */
+	 double x_val,y_val;
+	 int length = z_lid.rows();
+
+	 std::vector<int> h_assoc;
+	 int idx;
+	 for (int i = 0; i<length; i++)
+	 {
+		 x_val = z_lid(0,i);
+		 y_val = z_lid(1,i);
+		 idx = getCorrespondingLandmark(x_val,y_val);
+		 if (idx >= lm_num){
+			 // New landmark discovered
+			ROS_INFO_STREAM("New landmark detected");
+		 }
+	} 
+	return; 
+}
+int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
+	/* 
+		Obtains the landmark associated with a measurement
+		Currently uses direct distance.
+		TODO: Use maholinomas distance 
+	*/
+	std::vector<double> distance; 
+	double x_lm, y_lm, r; 
+	for (int i = 0; i<lm_num; i++){
+		
+		x_lm = x(0,STATE_SIZE + i);
+		y_lm = x(0,STATE_SIZE + i +1);
+
+		r = sqrt((x_lm - x_val)+(y_lm -y_val));
+		distance.push_back(r);
+	}
+	distance.push_back(MAX_DISTANCE);
+	int min = *std::min_element(distance.begin(), distance.end());
+	return min; 
+}
 
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
 	ROS_INFO_STREAM("Extended Kalman filter created");
-	lm_num = 0;
 
-	int status = 1;
 	nh = n;
+	int status = 1;
+	
+	lm_num = 0;
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
-
+	MAX_DISTANCE = 0.2; 
+	
 	// defining the state shape at initialization
 	px = Eigen::MatrixXf::Zero(1,STATE_SIZE); // predicted mean
 	pcv = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);// predicted Covariance
@@ -88,7 +131,6 @@ void ekfslam::runnable()
 	Here is the main loop for the EKF SLAM method  
 */
 {
-
 	ros::Rate looprate(HZ);
 	while (ros::ok())
 	{	// Predict!
@@ -166,7 +208,7 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 	int length_y = data.y.size();
 
 	// test here for length equality, otherwise bugs will occur. 
-	if (length_x == 0) return;
+	if (length_x == 0 || length_y == 0) return;
 	assert (length_x == length_y);
 
 	z_lid = Eigen::MatrixXf::Zero(3,length_x);
@@ -182,7 +224,7 @@ void ekfslam::computeJacobian(){
 	F = Eigen::MatrixXf::Identity(STATE_SIZE + lm_num,STATE_SIZE + lm_num );
 	double v = x(0,3);
 	double theta = x(0,2);
-	F(0,2) = -dt *v * sin(theta);
+	F(0,2) = -dt * v * sin(theta);
 	F(0,3) = dt * sin(theta);
 	F(1,2) = dt * v * cos(theta);
 	F(1,3) = dt * sin(theta);

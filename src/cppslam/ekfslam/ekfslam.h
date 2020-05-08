@@ -39,9 +39,13 @@ private:
 	void motionModel();
 	void computeJacobian();
 	void associateMeasurements();
+	void processMeasurements();
+	int getCorrespondingLandmark(double x, double y);
 
 	int STATE_SIZE;
 	int controlSize;
+
+	double MAX_DISTANCE;  
 	ros::NodeHandle nh;
 	double dt;
 	int HZ;
