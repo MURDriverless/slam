@@ -38,7 +38,7 @@ private:
 	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	void motionModel();
 	void computeJacobian();
-	void associateMeasurements();
+	void associateMeasurements(std::vector<int> idx_assoc);
 	void processMeasurements();
 	int getCorrespondingLandmark(double x, double y);
 
@@ -75,8 +75,10 @@ private:
 	Eigen::MatrixXf z_cam;
 	Eigen::MatrixXf z_lid;
 
-	int lm_num; // keeps track of the number of landmarks
+	Eigen::MatrixXf z;
 
+	int lm_num; // keeps track of the number of landmarks
+	int LM_SIZE;
 	std::vector<std::vector<discreteBayes>> coneExistence;
 
 	// std::vector<std::vector <Point<float>> > test;

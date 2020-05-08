@@ -33,7 +33,7 @@ void ekfslam::processMeasurements(){
 	 double x_val,y_val;
 	 int length = z_lid.rows();
 
-	 std::vector<int> h_assoc;
+	 std::vector<int> h_assoc_lidar;
 	 int idx;
 	 for (int i = 0; i<length; i++)
 	 {
@@ -43,8 +43,30 @@ void ekfslam::processMeasurements(){
 		 if (idx >= lm_num){
 			 // New landmark discovered
 			ROS_INFO_STREAM("New landmark detected");
+			//TODO: Look into ways to do this in place.
+			Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
+			x = x_tmp;
+			Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
+			cv = cv_tmp;
 		 }
-	} 
+	}
+	// int length z_cam.rows();
+	// std::vector<int> h_assoc_cam;
+	// int idx;
+	// for (int i = 0; i<length; i++)
+	// {
+	// 	x_val = z_cam(0,i);
+	// 	y_val = z_cam(1,i);
+	// 	idx = getCorrespondingLandmark(x_val,y_val);
+	// 	if (idx >= lm_num){
+	// 		// New landmark discovered
+	// 		ROS_INFO_STREAM("New landmark detected");
+	// 		Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
+	// 		x = x_tmp;
+	// 		Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
+	// 		cv = cv_tmp;
+	// 	}
+	// }
 	return; 
 }
 int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
@@ -67,6 +89,17 @@ int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 	int min = *std::min_element(distance.begin(), distance.end());
 	return min; 
 }
+void ekfslam::associateMeasurements(std::vector<int> idx_assoc){
+	/* Construct a measurement vector */
+	int length = static_cast<int>(idx_assoc.size());
+	z = Eigen::MatrixXf::Zero(1,LM_SIZE * length + STATE_SIZE);
+	
+	for (int i = 0; i<length;i++){
+		z(1,STATE_SIZE + LM_SIZE * i) = z_lid(idx_assoc[i],0);
+		z(1,STATE_SIZE + LM_SIZE * i + 1) = z_lid(idx_assoc[i],1);
+	}
+	return;
+}
 
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
@@ -76,6 +109,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	int status = 1;
 	
 	lm_num = 0;
+	LM_SIZE = 2;
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
@@ -155,7 +189,6 @@ void  ekfslam::motionModel()
 		Uses basic euler motion integration, will have to use actual system 
 		model for higher speeds Where non-linearities become significant.
 	*/
-
 	double theta = x(2,0);
 	double v = x(3,0); 
 	double theta_dot = x(4,0);
@@ -164,10 +197,8 @@ void  ekfslam::motionModel()
 	px(0,1) = x(0,1) + dt * v * sin(theta);
 	px(0,2) = theta + dt * theta_dot;
 	px(0,3) = u(0,0); // velocity commanded,
-	px(0,4) = u(0,1); // angular velocity commanded.
-	
+	px(0,4) = u(0,1); // angular velocity commanded.	
 	// Landmarks dont need updating
-
 	return;
 }
 
@@ -231,7 +262,5 @@ void ekfslam::computeJacobian(){
 	F(2,4) = dt; 
 	return;
 }
-void ekfslam::associateMeasurements(){
-	return;
-}
+
 #endif
