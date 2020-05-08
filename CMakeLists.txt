@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs 
     genmsg 
     geometry_msgs 
-    fssim_common
     message_generation
     sensor_msgs
     mur_common
