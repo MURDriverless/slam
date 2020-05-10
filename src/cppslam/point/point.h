@@ -26,6 +26,12 @@
         y = y_in;
         z = z_in;
       }
+    Point(const Point<T>& p)
+    {
+      x = p.x;
+      y = p.y; 
+      z = p.z; 
+    }
     T x; 
     T y; 
     T z;

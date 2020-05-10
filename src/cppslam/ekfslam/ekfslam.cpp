@@ -6,7 +6,7 @@ int ekfslam::launchSubscribers(){
 	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
-	control = nh.subscribe("/Cmd_vel", QUE_SIZE, &ekfslam::controlclb, this); 
+	// control = nh.subscribe("/Cmd_vel", QUE_SIZE, &ekfslam::controlclb, this); 
 	}
 	catch (const char *msg){
 		ROS_ERROR_STREAM(msg);
@@ -39,10 +39,11 @@ void ekfslam::processMeasurements(){
 	 {
 		 x_val = z_lid(0,i);
 		 y_val = z_lid(1,i);
-		 idx = getCorrespondingLandmark(x_val,y_val);
+		 idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
 		 if (idx >= lm_num){
 			 // New landmark discovered
 			ROS_INFO_STREAM("New landmark detected");
+			lm_num++;
 			//TODO: Look into ways to do this in place.
 			Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
 			x = x_tmp;
@@ -50,23 +51,8 @@ void ekfslam::processMeasurements(){
 			cv = cv_tmp;
 		 }
 	}
-	// int length z_cam.rows();
-	// std::vector<int> h_assoc_cam;
-	// int idx;
-	// for (int i = 0; i<length; i++)
-	// {
-	// 	x_val = z_cam(0,i);
-	// 	y_val = z_cam(1,i);
-	// 	idx = getCorrespondingLandmark(x_val,y_val);
-	// 	if (idx >= lm_num){
-	// 		// New landmark discovered
-	// 		ROS_INFO_STREAM("New landmark detected");
-	// 		Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
-	// 		x = x_tmp;
-	// 		Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
-	// 		cv = cv_tmp;
-	// 	}
-	// }
+	associateMeasurements(h_assoc_lidar);
+
 	return; 
 }
 int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
@@ -95,8 +81,8 @@ void ekfslam::associateMeasurements(std::vector<int> idx_assoc){
 	z = Eigen::MatrixXf::Zero(1,LM_SIZE * length + STATE_SIZE);
 	
 	for (int i = 0; i<length;i++){
-		z(1,STATE_SIZE + LM_SIZE * i) = z_lid(idx_assoc[i],0);
-		z(1,STATE_SIZE + LM_SIZE * i + 1) = z_lid(idx_assoc[i],1);
+		z(0,STATE_SIZE + LM_SIZE * i) = z_lid(idx_assoc[i],0);
+		z(0,STATE_SIZE + LM_SIZE * i + 1) = z_lid(idx_assoc[i],1);
 	}
 	return;
 }
@@ -148,6 +134,13 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 		}
 	}
 }
+
+void ekfslam::ProcessPoseMeasurements(){
+	for (int i = 0; i <STATE_SIZE; i++){
+		z(1,i) = 0.0; // not sure how to handle this curently
+	}
+}
+
 void ekfslam::controlclb(std_msgs::String msg)
 {
 	ROS_INFO_STREAM("Control callback");
@@ -165,22 +158,73 @@ void ekfslam::runnable()
 	Here is the main loop for the EKF SLAM method  
 */
 {
+	int newMeasurements, idx;
+	double x_val, y_val;
+
 	ros::Rate looprate(HZ);
+
 	while (ros::ok())
-	{	// Predict!
+	{
+		// Predict!
 		// Updates Prediected mean
 		ekfslam::motionModel();
 		ekfslam::computeJacobian();
-		// Update Predicted Covariance
-
-
-		// Process Sensor Msgs.
-		//Process 		
+		// Sensor Processing (only lidar for now)
+		newMeasurements = z_lid.rows();
+		for (int i = 0; i<newMeasurements; i++){
+			x_val = z_lid(0,i);
+			y_val = z_lid(1,i);
+			idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
+			if (idx >= lm_num){
+				// New landmark discovered
+				ROS_INFO_STREAM("New landmark detected");
+				lm_num++;
+				//TODO: Look into ways to do this in place.
+				Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
+				x = x_tmp;
+				Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
+				cv = cv_tmp;
+			}
+		}
 
 		ros::spinOnce();
 		
 		looprate.sleep(); //enforce rate
 	}
+}
+Point<double> ekfslam::getAbsolutePose(Point<double> p){
+	Point<double> correctedLM(p.x,p.y,p.z);
+	correctedLM.x += x(0,0);
+	correctedLM.y += y(0,0);
+	return correctedLM; 
+
+}
+void ekfslam::calcInnovation(int idx, Point<double> lm){
+	Eigen::MatrixXf xpos(1,2);
+	Eigen::MatrixXf zpos(1,2);
+	Eigen::MatrixXf y(1,2);
+	Eigen::MatrixXf delta(1,2); 
+
+	double x_pos  = x(0,0);
+	double y_pos = x(0,1);
+	double q = x_pos*x_pos + y_pos*y_pos;
+	// zpos(0,0) = z(0,STATE_SIZE + LM_SIZE*idx);
+	// zpos(0,1) = z(0,1+ STATE_SIZE + LM_SIZE*idx);
+	zpos(0,0) = lm.x;
+	zpos(0,1) = lm.y;
+	
+	delta(0,0) = lm.x - x(0,0);
+	delta(0,1) = lm.y - x(0,1);
+	
+	y = xpos - zpos;
+	ekfslam::Jacob_H(q,delta,idx);
+	
+	return;
+
+}
+void ekfslam::Jacob_H(double q, Eigen::MatrixXf delta, int idx){
+
+	return;
 }
 void  ekfslam::motionModel()
 {
@@ -202,19 +246,19 @@ void  ekfslam::motionModel()
 	return;
 }
 
-
-int ekfslam::initialiseSubs()
-{
-	try
-	{
-		return 1;
-	}
-	catch (char **msg)
-	{
-		ROS_ERROR_STREAM(msg);
-		return 0;
-	}
+void ekfslam::computeJacobian(){
+	// computes Jacobian of state
+	F = Eigen::MatrixXf::Identity(STATE_SIZE + lm_num,STATE_SIZE + lm_num );
+	double v = x(0,3);
+	double theta = x(0,2);
+	F(0,2) = -dt * v * sin(theta);
+	F(0,3) = dt * sin(theta);
+	F(1,2) = dt * v * cos(theta);
+	F(1,3) = dt * sin(theta);
+	F(2,4) = dt; 
+	return;
 }
+
 void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
 	int length_x = data.x.size();
@@ -250,17 +294,4 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 	}
 	return;
 }
-void ekfslam::computeJacobian(){
-	// computes Jacobian of state
-	F = Eigen::MatrixXf::Identity(STATE_SIZE + lm_num,STATE_SIZE + lm_num );
-	double v = x(0,3);
-	double theta = x(0,2);
-	F(0,2) = -dt * v * sin(theta);
-	F(0,3) = dt * sin(theta);
-	F(1,2) = dt * v * cos(theta);
-	F(1,3) = dt * sin(theta);
-	F(2,4) = dt; 
-	return;
-}
-
 #endif

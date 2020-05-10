@@ -33,14 +33,18 @@ private:
 	ros::Publisher track;
 	ros::Publisher pose;
 
-	int initialiseSubs();
-
 	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
+	int getCorrespondingLandmark(double x, double y);
+
 	void motionModel();
 	void computeJacobian();
 	void associateMeasurements(std::vector<int> idx_assoc);
 	void processMeasurements();
-	int getCorrespondingLandmark(double x, double y);
+	void ProcessPoseMeasurements();
+	void Jacob_H(double q, Eigen::MatrixXf delta, int idx);
+	void calcInnovation( int idx, Point<double> lm);
+	
+	Point<double> getAbsolutePose(Point<double> p);
 
 	int STATE_SIZE;
 	int controlSize;
