@@ -72,6 +72,9 @@ private:
 	Eigen::MatrixXf x;	// state
 	Eigen::MatrixXf cv; //state covariance
 	Eigen::MatrixXf u;
+	
+	Eigen::MatrixXf H; 
+
 
 	Eigen::MatrixXf F; // Jacobian Matrix
 	Eigen::MatrixXf Q; //

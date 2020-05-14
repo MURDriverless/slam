@@ -223,7 +223,7 @@ void ekfslam::calcInnovation(int idx, Point<double> lm){
 
 }
 void ekfslam::Jacob_H(double q, Eigen::MatrixXf delta, int idx){
-
+	H = Eigen::MatrixXf::Zero(5,5);
 	return;
 }
 void  ekfslam::motionModel()
