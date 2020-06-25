@@ -47,7 +47,7 @@ void ekfslam::processMeasurements(){
 			//TODO: Look into ways to do this in place.
 			Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
 			x = x_tmp;
-			Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
+			Eigen::Map<Eigen::MatrixXf> cv_tmp(cv.data(),cv.size() + 2,cv.size() + 2);
 			cv = cv_tmp;
 		 }
 	}
@@ -59,7 +59,6 @@ int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 	/* 
 		Obtains the landmark associated with a measurement
 		Currently uses direct distance.
-		TODO: Use maholinomas distance 
 	*/
 	std::vector<double> distance; 
 	double x_lm, y_lm, r; 
@@ -159,22 +158,19 @@ void ekfslam::runnable()
 */
 {
 	int newMeasurements, idx;
-	double x_val, y_val;
+	double x__lm_pre, y__lm_pre, x_val, y_val;
 
 	ros::Rate looprate(HZ);
 
 	while (ros::ok())
 	{
-		// Predict!
-		// Updates Prediected mean
 		ekfslam::motionModel();
 		ekfslam::computeJacobian();
 		// Sensor Processing (only lidar for now)
 		newMeasurements = z_lid.rows();
 		for (int i = 0; i<newMeasurements; i++){
-			x_val = z_lid(0,i);
-			y_val = z_lid(1,i);
-			idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
+			// do data association
+			idx = ekfslam::getCorrespondingLandmark(z_lid(i,0),z_lid(i,0));
 			if (idx >= lm_num){
 				// New landmark discovered
 				ROS_INFO_STREAM("New landmark detected");
@@ -185,6 +181,13 @@ void ekfslam::runnable()
 				Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
 				cv = cv_tmp;
 			}
+						
+			//compute predicted pose of object
+
+			x__lm_pre = x(0,0) + z_lid(0,i);
+			y__lm_pre = x(0,1) + z_lid(1,i);
+			
+
 		}
 
 		ros::spinOnce();
@@ -223,7 +226,8 @@ void ekfslam::calcInnovation(int idx, Point<double> lm){
 
 }
 void ekfslam::Jacob_H(double q, Eigen::MatrixXf delta, int idx){
-	H = Eigen::MatrixXf::Zero(5,5);
+	H = Eigen::MatrixXf::Identity(5,5);
+
 	return;
 }
 void  ekfslam::motionModel()
