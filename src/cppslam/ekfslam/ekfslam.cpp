@@ -175,7 +175,6 @@ void ekfslam::runnable()
 				// New landmark discovered
 				ROS_INFO_STREAM("New landmark detected");
 				lm_num++;
-				//TODO: Look into ways to do this in place.
 				Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
 				x = x_tmp;
 				Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
@@ -310,11 +309,15 @@ void ekfslam::publishPose()
 void ekfslam::publishTrack()
 {
 	mur_common::cone_msg cone_msg;
+	ros::Time current_time = ros::Time::now();
+
+	cone_msg.header.frame_id = "/map";
+	cone_msg.header.stamp = current_time;
+
 	std::vector<float> x_cones;
 	std::vector<float> y_cones; 
 	x_cones.reserve(lm_num);
 	y_cones.reserve(lm_num);
-	
 	for (int i = 0; i<lm_num; i++){
 		x_cones.at(i) =  x(0,STATE_SIZE + i*LM_SIZE);
 		y_cones.at(i) =  x(0,STATE_SIZE + i*LM_SIZE + 1);
