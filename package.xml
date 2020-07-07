@@ -12,6 +12,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   
   <depend>eigen</depend>
+
   <depend>eigen_conversions</depend>
   <build_depend> mur_common </build_depend>
   <build_depend>rospy</build_depend>

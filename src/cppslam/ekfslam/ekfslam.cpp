@@ -158,7 +158,7 @@ void ekfslam::runnable()
 */
 {
 	int newMeasurements, idx;
-	double x__lm_pre, y__lm_pre, x_val, y_val;
+	double x__lm_pre, y__lm_pre;
 
 	ros::Rate looprate(HZ);
 
@@ -181,14 +181,13 @@ void ekfslam::runnable()
 				Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
 				cv = cv_tmp;
 			}
-						
 			//compute predicted pose of object
-
 			x__lm_pre = x(0,0) + z_lid(0,i);
 			y__lm_pre = x(0,1) + z_lid(1,i);
 			
-
 		}
+		publishTrack();
+		publishPose();
 
 		ros::spinOnce();
 		
@@ -297,5 +296,37 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 		z_lid(2,i) = 0;
 	}
 	return;
+}
+void ekfslam::publishPose()
+{
+	// publish pose estimate
+	geometry_msgs::Pose2D pose_pub;
+	pose_pub.x = x(0,0);
+	pose_pub.y = x(0,1);
+	pose_pub.theta = x(0,2);
+	pose.publish(pose_pub); 
+}
+
+void ekfslam::publishTrack()
+{
+	mur_common::cone_msg cone_msg;
+	std::vector<float> x_cones;
+	std::vector<float> y_cones; 
+	x_cones.reserve(lm_num);
+	y_cones.reserve(lm_num);
+	
+	for (int i = 0; i<lm_num; i++){
+		x_cones.at(i) =  x(0,STATE_SIZE + i*LM_SIZE);
+		y_cones.at(i) =  x(0,STATE_SIZE + i*LM_SIZE + 1);
+	} 
+	cone_msg.x = x_cones; 
+	cone_msg.y = y_cones;
+	// Including a colour vector so its not empty, (but it is)
+	std::vector<std::string> cone_colour; 
+	cone_msg.colour = cone_colour;
+	// Add header 
+
+	track.publish(cone_msg);
+
 }
 #endif

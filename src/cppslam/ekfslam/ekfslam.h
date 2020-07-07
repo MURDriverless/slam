@@ -11,6 +11,8 @@
 #include <cassert>
 #include <vector>
 #include "../point/point.h"
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
 
 class ekfslam
 {
@@ -43,7 +45,9 @@ private:
 	void ProcessPoseMeasurements();
 	void Jacob_H(double q, Eigen::MatrixXf delta, int idx);
 	void calcInnovation( int idx, Point<double> lm);
-	
+	void publishPose();
+	void publishTrack();
+
 	Point<double> getAbsolutePose(Point<double> p);
 
 	int STATE_SIZE;
@@ -85,7 +89,7 @@ private:
 	Eigen::MatrixXf z;
 
 	int lm_num; // keeps track of the number of landmarks
-	int LM_SIZE;
+	int LM_SIZE; // size of any given cone measurement (2)
 	std::vector<std::vector<discreteBayes>> coneExistence;
 
 	// std::vector<std::vector <Point<float>> > test;
