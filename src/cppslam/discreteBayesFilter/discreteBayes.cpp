@@ -11,13 +11,15 @@ void discreteBayes::update(bool measured, double p_measured){
      */
     double x_z = measured ? p_measured:1-p_measured;
 
-    l_t = logOdds(x_z) -  l_0 + l_t; 
+    l_t = logOdds(x_z) - l_0 + l_t; 
+    
     if (l_t>1.0){
         state = true;
     }
     else {
         state = false;
     }
+    return; 
 }
 
 void discreteBayes::initialize(double p_measured){

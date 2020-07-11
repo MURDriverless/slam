@@ -11,19 +11,13 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs 
     genmsg 
     geometry_msgs 
-    fssim_common
+    message_generation
     sensor_msgs
+    mur_common
     )
 catkin_python_setup()
 
-## Declare ROS messages and services
 
-
-## Generate added messages and services
-# generate_messages(DEPENDENCIES std_msgs fssim_common sensor_msgs)
-
-# Attempt to find Eigen using its own CMake module.
-# If that fails, fall back to cmake_modules package.
 find_package(Eigen3)
 set(EIGEN_PACKAGE EIGEN3)
 if(NOT EIGEN3_FOUND)
@@ -33,6 +27,8 @@ if(NOT EIGEN3_FOUND)
   set(EIGEN3_LIBRARIES ${EIGEN_LIBRARIES})
   set(EIGEN_PACKAGE Eigen)
 endif()
+find_package(Boost REQUIRED COMPONENTS thread)
+
 
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "-std=c++14;-Wall;-Werror")
 add_definitions(-DEIGEN_NO_DEBUG -DEIGEN_MPL2_ONLY)
@@ -45,14 +41,14 @@ DEPENDS
     ${EIGEN_PACKAGE}
 )
 
-## Build talker and listener
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_executable(slamNode src/cppslam/slamNode.cpp)
 
-add_library(
-  ekf src/cppslam/ekfslam/ekfslam.cpp
-  discreteBayes src/cppslam/discreteBayes/discreteBayes.cpp)
+add_library(ekf src/cppslam/ekfslam/ekfslam.cpp)
+add_library(discreteBayes src/cppslam/discreteBayesFilter/discreteBayes.cpp)
+add_library(point src/cppslam/point/point.cpp)
 
 target_link_libraries(slamNode ${catkin_LIBRARIES} ekf discreteBayes)
 
+add_dependencies(slamNode ${catkin_EXPORTED_TARGETS})

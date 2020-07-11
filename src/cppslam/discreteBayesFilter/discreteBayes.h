@@ -10,7 +10,9 @@
 */
 class discreteBayes{
     public:
-        discreteBayes(double p_x){
+
+        discreteBayes(double p_x)
+        {
             /* 
             Inputs:
                 p_x :Probability of the measurement given state. 
@@ -19,6 +21,9 @@ class discreteBayes{
 
            state = true;
         }
+        
+        /* Default Constructor */
+        discreteBayes() : l_0(1.0) {}
         
         void update(bool measured, double p_measured);
         void initialize(double p_measured); 
