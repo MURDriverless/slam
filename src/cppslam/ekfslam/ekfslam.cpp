@@ -27,31 +27,31 @@ int ekfslam::launchPublishers(){
 	return 1; 
 }
 void ekfslam::processMeasurements(){
-	/* This function processes the measurements and associates them into a 
-		h mapping
-	 */
-	 double x_val,y_val;
-	 int length = z_lid.rows();
+	// /* This function processes the measurements and associates them into a 
+	// 	h mapping
+	//  */
+	//  double x_val,y_val;
+	//  int length = z_lid.rows();
 
-	 std::vector<int> h_assoc_lidar;
-	 int idx;
-	 for (int i = 0; i<length; i++)
-	 {
-		 x_val = z_lid(0,i);
-		 y_val = z_lid(1,i);
-		 idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
-		 if (idx >= lm_num){
-			 // New landmark discovered
-			ROS_INFO_STREAM("New landmark detected");
-			lm_num++;
-			//TODO: Look into ways to do this in place.
-			Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
-			x = x_tmp;
-			Eigen::Map<Eigen::MatrixXf> cv_tmp(cv.data(),cv.size() + 2,cv.size() + 2);
-			cv = cv_tmp;
-		 }
-	}
-	associateMeasurements(h_assoc_lidar);
+	//  std::vector<int> h_assoc_lidar;
+	//  int idx;
+	//  for (int i = 0; i<length; i++)
+	//  {
+	// 	 x_val = z_lid(0,i);
+	// 	 y_val = z_lid(1,i);
+	// 	 idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
+	// 	 if (idx >= lm_num){
+	// 		 // New landmark discovered
+	// 		ROS_INFO_STREAM("New landmark detected");
+	// 		lm_num++;
+	// 		//TODO: Look into ways to do this in place.
+	// 		Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
+	// 		x = x_tmp;
+	// 		Eigen::Map<Eigen::MatrixXf> cv_tmp(cv.data(),cv.size() + 2,cv.size() + 2);
+	// 		cv = cv_tmp;
+	// 	 }
+	// }
+	// associateMeasurements(h_assoc_lidar);
 
 	return; 
 }
@@ -74,14 +74,14 @@ int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 	int min = *std::min_element(distance.begin(), distance.end());
 	return min; 
 }
-void ekfslam::associateMeasurements(std::vector<int> idx_assoc){
+void ekfslam::associateMeasurements(){
 	/* Construct a measurement vector */
-	int length = static_cast<int>(idx_assoc.size());
+	int length = z_lid.rows();
 	z = Eigen::MatrixXf::Zero(1,LM_SIZE * length + STATE_SIZE);
 	
 	for (int i = 0; i<length;i++){
-		z(0,STATE_SIZE + LM_SIZE * i) = z_lid(idx_assoc[i],0);
-		z(0,STATE_SIZE + LM_SIZE * i + 1) = z_lid(idx_assoc[i],1);
+		z(0,STATE_SIZE + LM_SIZE * i) = z_lid(i,0);
+		z(0,STATE_SIZE + LM_SIZE * i + 1) = z_lid(i,1);
 	}
 	return;
 }
@@ -102,15 +102,15 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	
 	// defining the state shape at initialization
 	px = Eigen::MatrixXf::Zero(1,STATE_SIZE); // predicted mean
-	pcv = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);// predicted Covariance
+	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
 	y = Eigen::MatrixXf::Zero(1,STATE_SIZE); //innovation measurement residual
 	S = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE); // innovation covariance
 	K = Eigen::MatrixXf::Zero(STATE_SIZE, STATE_SIZE); // kalman gain 
 
 	x = Eigen::MatrixXf::Zero(1,STATE_SIZE); // state
-	cv = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE); //state covariance 
+	cv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE); //state covariance 
 	u = Eigen::MatrixXf::Zero(1,2); // Control
-
+	Q = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
 	while (ros::ok())
 	{
 		try
@@ -158,33 +158,66 @@ void ekfslam::runnable()
 */
 {
 	int newMeasurements, idx;
-	double x__lm_pre, y__lm_pre;
 
 	ros::Rate looprate(HZ);
 
 	while (ros::ok())
 	{
-		ekfslam::motionModel();
-		ekfslam::computeJacobian();
+		// predict Step
+		ekfslam::motionModel(); // predicts px
+		ekfslam::computeJacobian(); // Computes Jacobian "F"
+		Eigen::MatrixXf F_x = Eigen::MatrixXf::Zero(STATE_SIZE,lm_num * LM_SIZE + STATE_SIZE);
+		F_x(0,0) =1;
+		F_x(1,1) =1;
+		F_x(2,2) =1;
+		F_x(3,3) =1;
+		F_x(4,4) =1;
+		pcv = F * cv * F.transpose() + F_x * Q * F_x.transpose(); // predicts Covariance
 		// Sensor Processing (only lidar for now)
 		newMeasurements = z_lid.rows();
+		associateMeasurements(); 
+		y = z_lid - z; // this needs to be reviewed.
 		for (int i = 0; i<newMeasurements; i++){
 			// do data association
 			idx = ekfslam::getCorrespondingLandmark(z_lid(i,0),z_lid(i,0));
+
 			if (idx >= lm_num){
 				// New landmark discovered
 				ROS_INFO_STREAM("New landmark detected");
 				lm_num++;
-				Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
-				x = x_tmp;
-				Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
-				cv = cv_tmp;
+				// resize state arrays
+				// Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
+				// x = x_tmp;
+				Eigen::Map<Eigen::MatrixXf> x_tmp(px.data(),1,2+px.size());
+				px = x_tmp;
+				// Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.size() + 2,cv.size() + 2);
+				// cv = cv_tmp;
+				Eigen::Map<Eigen::MatrixXf> cv_tmp(pcv.data(),pcv.size() + 2,pcv.size() + 2);
+				pcv = cv_tmp;
 			}
-			//compute predicted pose of object
-			x__lm_pre = x(0,0) + z_lid(0,i);
-			y__lm_pre = x(0,1) + z_lid(1,i);
 			
+			// Compute sensor Jacobian and F matrix 
+			Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
+			F_j(0,0) = 1; 
+			F_j(1,1) = 1; 
+			F_j(2,2) = 1; 
+			F_j(3,3) = 1; 
+			F_j(4,4) = 1;
+			F_j(5,(idx+1)*LM_SIZE + STATE_SIZE) = 1;
+			F_j(6,(idx+1)*LM_SIZE + STATE_SIZE) = 1;
+			Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(lm_num,STATE_SIZE+LM_SIZE);
+			H_j(0,0) = 1; 
+			H_j(1,1) = 1; 
+			H_j(0,STATE_SIZE) = 1; 
+			H_j(1,STATE_SIZE + 1) = 1; 
+			H = H_j * F;
+			K = pcv * H.transpose() * (H * pcv * H.transpose() + Q).inverse();
+			px = px + K * y;
+			Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
+			pcv = (I - K * H) * pcv;  
 		}
+		x = px; 
+		cv = pcv;
 		publishTrack();
 		publishPose();
 
@@ -261,6 +294,7 @@ void ekfslam::computeJacobian(){
 	return;
 }
 
+
 void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
 	int length_x = data.x.size();
@@ -327,9 +361,7 @@ void ekfslam::publishTrack()
 	// Including a colour vector so its not empty, (but it is)
 	std::vector<std::string> cone_colour; 
 	cone_msg.colour = cone_colour;
-	// Add header 
-
+	// TODO: Add header 
 	track.publish(cone_msg);
-
 }
 #endif

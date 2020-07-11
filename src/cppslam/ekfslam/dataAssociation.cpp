@@ -1,8 +1,9 @@
 #ifndef DATA_ASSOCIATION_H
 #define DATA_ASSOCIATION_H
+#include "dataAssociation.h"
 
 
-Eigen::MatrixXf genF(int idx)
+Eigen::MatrixXf dataAssociation::genF(int idx)
 {
     Eigen::MatrixXf F; 
     int size = STATE_SIZE + LM_SIZE; 

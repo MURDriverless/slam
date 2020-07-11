@@ -5,7 +5,7 @@
 #include <math.h>
 #include "../point/point.h"
 
-class dataAssociation(){
+class dataAssociation{
     public: 
         dataAssociation(point z_t, Eigen::MatrixXf x_t, int state_size, int lm_size)
         {
