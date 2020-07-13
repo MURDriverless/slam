@@ -12,6 +12,7 @@ from mur_common.msg import cone_msg
 from geometry_msgs.msg import Pose2D
 import math
 import random as rn
+import matplotlib.pyplot as plt
 
 
 class Simulation:
@@ -23,6 +24,9 @@ class Simulation:
     def run(self):
         dt = 1.0 / self.rateHz
         ros_rate = rospy.Rate(self.rateHz)
+        self.fig = plt.figure()
+        plt.xlabel('x (m)')
+        plt.ylabel('y (m)')
         while(not rospy.is_shutdown()):
             '''
             Updating of simulation and plotting
@@ -40,6 +44,11 @@ class Simulation:
             rospy.spin()
             ros_rate.sleep()
         return
+
+    def drawLMs(self):
+        '''
+        Draws landmarks for the simulation
+        '''
 
     def getSensorReadings(self):
         x_s = self.car.x
