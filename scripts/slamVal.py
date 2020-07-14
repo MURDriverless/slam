@@ -29,6 +29,8 @@ class Simulation:
         self.tr = map(10, 10, 20)
         self.car = robot()
         self.rateHz = rate
+        self.conePub = rospy.Publisher("/lidar/cone", cone_msg, queue_size=1)
+        self.odomPub = rospy.Publisher("/Odom", Pose2D, queue_size=1)
 
     def run(self):
         dt = 1.0 / self.rateHz
@@ -90,11 +92,26 @@ class Simulation:
 
             if (r < 5 and abs(theta-theta_s) < 1):
                 # Assume cone can be detected
-                detected.append((x, y))
+                detected.append((x + rn.gauss(0, 0.05), y + rn.gauss(0, 0.05)))
         return detected
 
     def doPublishing(self, detected):
-        pass
+        detected_msg = cone_msg()
+        x_list = []
+        y_list = []
+        for item in detected:
+            x_list.append(item[0])
+            y_list.append(item[1])
+        detected_msg.x = x_list
+        detected_msg.y = y_list
+        detected_msg.header.frame_id = "base_link"
+        self.conePub.publish(detected_msg)
+        pse = Pose2D()
+        pse.x = self.car.x
+        pse.y = self.car.y
+        pse.theta = self.car.theta
+        self.odomPub.publish(pse)
+        return
 
 
 class map:
