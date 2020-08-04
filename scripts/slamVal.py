@@ -29,7 +29,7 @@ class Simulation:
         self.tr = map(10, 10, 20)
         self.car = robot()
         self.rateHz = rate
-        self.conePub = rospy.Publisher("/lidar/cone", cone_msg, queue_size=1)
+        self.conePub = rospy.Publisher("/lidar/cones", cone_msg, queue_size=1)
         self.odomPub = rospy.Publisher("/Odom", Pose2D, queue_size=1)
 
     def run(self):

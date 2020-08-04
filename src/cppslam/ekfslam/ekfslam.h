@@ -13,7 +13,6 @@
 #include "../point/point.h"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-
 class ekfslam
 {
 
@@ -28,7 +27,7 @@ private:
 	void ptcloudclbCam(const mur_common::cone_msg &data);
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
 	void controlclb(std_msgs::String msg);
-
+	void odomclb(const nav_msgs::Odometry &data);
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	ros::Subscriber control;
@@ -61,7 +60,7 @@ private:
 	//static message topic names
 	std::string CONE_MSG = "/cone_msg";
 	std::string CAM_TOPIC = "/camera/cones" + CONE_MSG;
-	std::string LIDAR_TOPIC = "/lidar/cones" + CONE_MSG;
+	std::string LIDAR_TOPIC = "/lidar/cones";
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
 
