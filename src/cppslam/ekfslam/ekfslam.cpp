@@ -17,7 +17,7 @@ int ekfslam::launchSubscribers(){
 
 int ekfslam::launchPublishers(){
 	try {
-	track = nh.advertise<sensor_msgs::PointCloud2>(FILTERED_TOPIC, QUE_SIZE); 
+	track = nh.advertise<mur_common::cone_msg>(FILTERED_TOPIC, QUE_SIZE); 
 	pose = nh.advertise<geometry_msgs::Pose2D>(SLAM_POSE_TOPIC, QUE_SIZE);	  
 	}
 	catch(const char *msg){
@@ -60,21 +60,26 @@ int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 		Obtains the landmark associated with a measurement
 		Currently uses direct distance.
 	*/
-	std::vector<double> distance; 
-	double x_lm, y_lm, r; 
+	double x_lm, y_lm, r_min, r;
+	int min_idx = lm_num;
+	r_min = MAX_DISTANCE;
 	for (int i = 0; i<lm_num; i++){
 		
-		x_lm = x(0,STATE_SIZE + i);
-		y_lm = x(0,STATE_SIZE + i +1);
+		x_lm = px(STATE_SIZE + LM_SIZE*i,0);
+		ROS_INFO("x_lm copare: %lf", x_lm);
+		y_lm = px(STATE_SIZE + LM_SIZE * i +1,0);
+		ROS_INFO("y_lm copare: %lf", y_lm);
 
-		r = sqrt((x_lm - x_val)+(y_lm -y_val));
+		r = sqrt((x_lm - x_val)*(x_lm - x_val)+(y_lm -y_val)*(y_lm -y_val));
 		ROS_INFO("Distance: %lf", r);
-		distance.push_back(r);
+		if (r < r_min){
+			r_min = r;
+			min_idx = i;  
+		}
 	}
-	distance.push_back(MAX_DISTANCE);
-	int min = *std::min_element(distance.begin(), distance.end());
-	return min; 
+	return min_idx; 
 }
+
 void ekfslam::associateMeasurements(){
 	/* Construct a measurement vector */
 	int length = z_lid.rows();
@@ -99,16 +104,14 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
-	MAX_DISTANCE = 0.2; 
+	MAX_DISTANCE = 0.3; 
 	
 	// defining the state shape at initialization
-	px = Eigen::MatrixXf::Zero(1,STATE_SIZE); // predicted mean
+	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
 	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
-	y = Eigen::MatrixXf::Zero(1,STATE_SIZE); //innovation measurement residual
 	S = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE); // innovation covariance
-	K = Eigen::MatrixXf::Zero(STATE_SIZE, STATE_SIZE); // kalman gain 
 
-	x = Eigen::MatrixXf::Zero(1,STATE_SIZE); // state
+	x = Eigen::MatrixXf::Zero(STATE_SIZE,1); // state
 	cv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE); //state covariance 
 	u = Eigen::MatrixXf::Zero(1,2); // Control
 	Q = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
@@ -141,18 +144,12 @@ void ekfslam::ProcessPoseMeasurements(){
 	}
 }
 
-void ekfslam::controlclb(std_msgs::String msg)
-{
-	ROS_INFO_STREAM("Control callback");
-	return; 
-}
-
 /* State Definitions
  * x = {x,y,theta,velocity}^T
  * u = {velocity, angular velocity}
  * lm = [lm1, lm2 lm3 ...]
  * */
-void ekfslam::odomclb(const nav_msgs::Odometry &data){
+void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
 	return;
 }
 void ekfslam::runnable()
@@ -160,77 +157,129 @@ void ekfslam::runnable()
 	Here is the main loop for the EKF SLAM method  
 */
 {
-	int newMeasurements, idx;
+	int newMeasurements, idx, new_size, rows;
+	double xlm, ylm; 
 	ros::Rate looprate(HZ);
 	ros::Subscriber odomSub;
-	odomSub =nh.subscribe("/odom", QUE_SIZE, &ekfslam::odomclb, this);
+	ros::Subscriber controlSub;
+	
+	odomSub = nh.subscribe("/odom", QUE_SIZE, &ekfslam::odomclb, this);
+	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &ekfslam::controlclb, this);
 
 	while (ros::ok())
 	{
 		// predict Step
 		ekfslam::motionModel(); // predicts px
 		ekfslam::computeJacobian(); // Computes Jacobian "F"
-		Eigen::MatrixXf F_x = Eigen::MatrixXf::Zero(STATE_SIZE,lm_num * LM_SIZE + STATE_SIZE);
-		F_x(0,0) =1;
-		F_x(1,1) =1;
-		F_x(2,2) =1;
-		F_x(3,3) =1;
-		F_x(4,4) =1;
-		pcv = F * cv * F.transpose() + F_x * Q * F_x.transpose(); // predicts Covariance
-		// // Sensor Processing (only lidar for now)
-		newMeasurements = z_lid.cols();
+
+		Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+		
+		ekfslam::UpdateCovariance();
+		// pcv = F * cv * F.transpose() + F_x * Q * F_x.transpose(); // predicts Covariance
+		// printf("Predict cv");
+		// printEigenMatrix(pcv);
+		// Sensor Processing (only lidar for now)
+		newMeasurements = z_lid.rows()/2;
 		ROS_INFO("Measurements: %d ",newMeasurements);
 		// associateMeasurements(); 
-		y = z_lid - z; // this needs to be reviewed.
 		for (int i = 0; i<newMeasurements; i++){
-		ROS_INFO("new measurement \n");
-		// do data association
-		idx = ekfslam::getCorrespondingLandmark(z_lid(i,0),z_lid(i,0));
-		ROS_INFO("Index: %d",idx);
+			ROS_INFO("New measurement");
+			// do data association
+			xlm = px(0,0) + z_lid(i*LM_SIZE,0);
+			ylm = px(1,0) + z_lid(i*LM_SIZE+1,0);
+			ROS_INFO("XLM: %lf", xlm);
+			ROS_INFO("YLM: %lf", ylm);
+			
+			idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
+			ROS_INFO("Index: %d",idx);
 
-		if (idx >= lm_num){
-		// 		// New landmark discovered
-				ROS_INFO_STREAM("New landmark detected");
-				lm_num++;
-		// 		// resize state arrays
-				Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.rows());
-				x = x_tmp;
-				Eigen::Map<Eigen::MatrixXf> px_tmp(px.data(),1,2+px.rows());
-				px = px_tmp;
-				Eigen::Map<Eigen::MatrixXf> cv_tmp(x.data(),cv.cols() + 2,cv.rows() + 2);
-				cv = cv_tmp;
-				Eigen::Map<Eigen::MatrixXf> pcv_tmp(pcv.data(),pcv.cols() + 2,pcv.rows() + 2);
-				pcv = cv_tmp;
-		}
+			if (idx >= lm_num){
+					// New landmark discovered
+					ROS_INFO_STREAM("New landmark detected");
+					lm_num++;
+					// resize state arrays
+					new_size = x.rows() + LM_SIZE; 
+					rows = x.rows();
+					ROS_INFO("New size: %d", new_size);
+					x.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,1));
+					px.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,1));
+					px(rows,0) = xlm;
+					px(rows+1,0) = ylm;
+
+					cv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
+					pcv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
+					pcv(new_size-1,new_size-1) = 0.1;
+					pcv(new_size-2,new_size-2) = 0.1;
+					
+					
+					ROS_INFO("Resizing complete");
+			}
+			y = Eigen::MatrixXf::Zero(2,1);
+			y(0,0) = xlm - px(STATE_SIZE + idx * LM_SIZE,0); 
+			y(1,0) = ylm - px(STATE_SIZE + idx * LM_SIZE + 1,0);
+			// printf("Y"); 
+			// printEigenMatrix(y);
 			
 			// Compute sensor Jacobian and F matrix 
 			Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
+			Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(LM_SIZE,STATE_SIZE+LM_SIZE);
 			F_j(0,0) = 1; 
 			F_j(1,1) = 1; 
 			F_j(2,2) = 1; 
 			F_j(3,3) = 1; 
 			F_j(4,4) = 1;
-			F_j(5,(idx+1)*LM_SIZE + STATE_SIZE) = 1;
-			F_j(6,(idx+1)*LM_SIZE + STATE_SIZE) = 1;
-			Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(lm_num,STATE_SIZE+LM_SIZE);
+			F_j(5,(idx)*LM_SIZE + STATE_SIZE) = 1;
+			F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
+
 			H_j(0,0) = 1; 
 			H_j(1,1) = 1; 
 			H_j(0,STATE_SIZE) = 1; 
 			H_j(1,STATE_SIZE + 1) = 1; 
-			H = H_j * F;
-			K = pcv * H.transpose() * (H * pcv * H.transpose() + Q).inverse();
-			px = px + K * y;
+			H = Eigen::MatrixXf::Zero(2,7);
+			H = H_j * F_j;
+			// printf("F_j");
+			// printEigenMatrix(F_j);
+			// printf("H_j");
+
+			// printEigenMatrix(H_j);
+			// printf("H");
+
+			// printEigenMatrix(H);
+			// printf("Pcv");
+			// printEigenMatrix(pcv);
+
+			K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
+			Eigen::MatrixXf k_tmp; 
+			Eigen::MatrixXf Q_small; 
+			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*0.1;
+			k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
+			// printf("K_temp");
+			// printEigenMatrix(k_tmp);
+			K = pcv * H.transpose() * k_tmp;
+			// printf("K");
+			
+			// printEigenMatrix(K);
+			px = px +  K*y;
+			// printf("px");
+			// printEigenMatrix(px);
+
 			Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 			pcv = (I - K * H) * pcv;  
+			// printf("Pcv");
+			// printEigenMatrix(pcv);
 		}
-		// x = px; 
-		// cv = pcv;
-		// publishTrack();
-		// publishPose();
+		x = px; 
+		cv = pcv;
+		// printf("RAW STATE"); 
+		// printEigenMatrix(x);
+
+		publishTrack();
+		publishPose();
 
 		ros::spinOnce();
 		
 		looprate.sleep(); //enforce rate
+		std::cout << "\n\n";
 	}
 }
 Point<double> ekfslam::getAbsolutePose(Point<double> p){
@@ -277,13 +326,14 @@ void  ekfslam::motionModel()
 	*/
 	double theta = x(2,0);
 	double v = x(3,0); 
-	double theta_dot = x(4,0);
-	v = theta * theta_dot * v;
+	double theta_dot = u(0,1);
 	px(0,0) = x(0,0) + dt * v * cos(theta); 
-	px(0,1) = x(0,1) + dt * v * sin(theta);
-	px(0,2) = theta + dt * theta_dot;
-	px(0,3) = u(0,0); // velocity commanded,
-	px(0,4) = u(0,1); // angular velocity commanded.	
+	px(1,0) = x(1,0) + dt * v * sin(theta);
+	px(2,0) = theta + dt * theta_dot;
+	ROS_INFO("Theta: %f", px(2,0));
+	// px(2,0) = pi2pi(px(2,0));
+	px(3,0) = u(0,0); // velocity commanded,
+	px(4,0) = u(0,1); // angular velocity commanded.	
 	// Landmarks dont need updating
 	return;
 }
@@ -327,7 +377,10 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 	int length_y = data.y.size();
 
 	// test here for length equality, otherwise bugs will occur. 
-	if (length_x == 0 || length_y == 0) return;
+	if (length_x == 0 || length_y == 0){
+		z_lid = Eigen::MatrixXf::Zero(0,0);
+		return;
+	};
 	assert (length_x == length_y);
 
 	z_lid = Eigen::MatrixXf::Zero(3,length_x);
@@ -343,27 +396,27 @@ void ekfslam::publishPose()
 {
 	// publish pose estimate
 	geometry_msgs::Pose2D pose_pub;
-	pose_pub.x = x(0,0);
-	pose_pub.y = x(0,1);
-	pose_pub.theta = x(0,2);
+	pose_pub.x = px(0,0);
+	pose_pub.y = px(1,0);
+	pose_pub.theta = px(2,0);
 	pose.publish(pose_pub); 
 }
 
 void ekfslam::publishTrack()
 {
 	mur_common::cone_msg cone_msg;
+	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
 
-	cone_msg.header.frame_id = "/map";
+	cone_msg.header.frame_id = "/base_link";
 	cone_msg.header.stamp = current_time;
 
-	std::vector<float> x_cones;
-	std::vector<float> y_cones; 
-	x_cones.reserve(lm_num);
-	y_cones.reserve(lm_num);
+	std::vector<float> x_cones(lm_num);
+	std::vector<float> y_cones(lm_num);
+
 	for (int i = 0; i<lm_num; i++){
-		x_cones.at(i) =  x(0,STATE_SIZE + i*LM_SIZE);
-		y_cones.at(i) =  x(0,STATE_SIZE + i*LM_SIZE + 1);
+		x_cones[i] =  px(STATE_SIZE + i*LM_SIZE,0);
+		y_cones[i] = px(STATE_SIZE + i*LM_SIZE + 1,0);
 	} 
 	cone_msg.x = x_cones; 
 	cone_msg.y = y_cones;
@@ -371,6 +424,79 @@ void ekfslam::publishTrack()
 	std::vector<std::string> cone_colour; 
 	cone_msg.colour = cone_colour;
 	// TODO: Add header 
+	
 	track.publish(cone_msg);
+}
+void ekfslam::UpdateCovariance(){
+	Eigen::MatrixXf cv_tmp= Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);
+	Eigen::MatrixXf cv_upper= Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);
+
+	Eigen::MatrixXf G;
+	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(STATE_SIZE, STATE_SIZE); 
+	Eigen::MatrixXf jf= Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);
+	Eigen::MatrixXf F = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE + LM_SIZE * lm_num);
+	F(0,0) =1;
+	F(1,1) =1;
+	F(2,2) =1;
+	F(3,3) =1;
+	F(4,4) =1;
+	double theta = x(3,0);
+	double v = x(4,0);
+	jf(0,2) = -dt * v * sin(theta); 
+	jf(1,2) = dt * v * cos(theta); 
+	G = I + F.transpose() * jf * F;
+	 
+	cv_tmp = Eigen::MatrixXf::Zero(STATE_SIZE, STATE_SIZE);
+	for (int i = 0; i < STATE_SIZE; i++){
+		for (int j = 0; j <STATE_SIZE; j++){
+			cv_tmp(i,j) = pcv(i,j);
+		}
+	}
+	cv_upper = G.transpose() * cv_tmp * G + F.transpose() * (I * 1.5) * F;
+
+	for (int i = 0; i < STATE_SIZE; i++){
+		for (int j = 0; j <STATE_SIZE; j++){
+			pcv(i,j) = cv_upper(i,j);
+		}
+	}
+	return;
+}
+
+void ekfslam::controlclb(const mur_common::mur_drive_cmd &data)
+{
+	u(0,0) = data.vel;
+	u(0,1) = data.omega;
+	return;
+}
+double pi2pi(double val){
+	if (val> PI){
+		return -(PI -std::fmod(val,PI));  
+	}
+	else if (val < -PI)
+	{
+		return (PI - std::fmod(val,PI) );
+	}
+	else{
+		return val;
+	}
+}
+void printEigenMatrix(Eigen::MatrixXf mat){
+	printf("\n\n");
+	if (mat.rows() == 0){
+		ROS_WARN("ARRAY is empty");
+	}
+	int rows = mat.rows(); 
+	int cols = mat.cols(); 
+	printf("Rows: %d || Cols: %d \n\n", rows, cols);
+	printf("[");
+	for (int i = 0 ; i<mat.rows() ;i++){
+			printf("[");
+		for (int j = 0; j< mat.cols(); j++){
+			printf("%f ,", mat(i,j));
+		}
+		printf("]\n");
+	}
+	printf("]\n\n");
+	return;
 }
 #endif

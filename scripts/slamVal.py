@@ -13,6 +13,7 @@ from geometry_msgs.msg import Pose2D
 import math
 import random as rn
 import matplotlib.pyplot as plt
+from mur_common.msg import mur_drive_cmd
 
 
 def pi2pi(val):
@@ -26,11 +27,28 @@ def pi2pi(val):
 
 class Simulation:
     def __init__(self, odomTopic, conesTopic, rate):
-        self.tr = map(10, 10, 20)
+        self.tr = map(10, 10, 10)
         self.car = robot()
+        self.map = []
+        self.poseEst = robot()
         self.rateHz = rate
         self.conePub = rospy.Publisher("/lidar/cones", cone_msg, queue_size=1)
-        self.odomPub = rospy.Publisher("/Odom", Pose2D, queue_size=1)
+        # self.odomPub = rospy.Publisher("/Odom", Pose2D, queue_size=1)
+        self.cmdPub = rospy.Publisher(
+            "/control_cmd", mur_drive_cmd, queue_size=1)
+        self.mapSub = rospy.Subscriber(
+            "/slam/map", cone_msg, self.mapClb, queue_size=1)
+        self.poseSub = rospy.Subscriber(
+            "/slam/odom", Pose2D, self.poseclb, queue_size=1)
+
+    def poseclb(self, pose):
+        self.poseEst.x = pose.x
+        self.poseEst.y = pose.y
+        self.poseEst.theta = pose.theta
+
+    def mapClb(self, map):
+        self.map = list(zip(map.x, map.y))
+        return
 
     def run(self):
         dt = 1.0 / self.rateHz
@@ -39,17 +57,17 @@ class Simulation:
         plt.xlabel('x (m)')
         plt.ylabel('y (m)')
         plt.ion()
-        self. v = 0.5
-        self.omega = 0.9
+        self.v = 0.5
+        self.omegaVel = 0.5
         while(not rospy.is_shutdown()):
             '''
             Updating of simulation and plotting
             '''
             self.car.forwardK(
-                dt, self.v, self.omega)  # Hardcoded inputs for now
+                dt, self.v, self.omegaVel)  # Hardcoded inputs for now
             detected = self.getSensorReadings()
             self.doPublishing(detected)
-            rospy.loginfo("x: %.2f ||  y :%.2f", self.car.x, self.car.y)
+            # rospy.loginfo("x: %.2f ||  y :%.2f", self.car.x, self.car.y)
             '''
             Plotting
             '''
@@ -66,15 +84,24 @@ class Simulation:
         axes.set_xlim([self.tr.x_range[0], self.tr.x_range[1]])
         axes.set_ylim([self.tr.y_range[0], self.tr.y_range[1]])
         plt.scatter(self.car.x, self.car.y)
+
+        x = self.poseEst.x
+        y = self.poseEst.y
+        theta = self.poseEst.theta
+        plt.arrow(x, y, self.v * math.cos(theta), self.v * math.sin(theta))
+
         x = self.car.x
         y = self.car.y
         theta = self.car.theta
         plt.arrow(x, y, self.v * math.cos(theta), self.v * math.sin(theta))
+
         for lm in self.tr.track:
             plt.scatter(lm[0], lm[1], marker="o", c="r", )
 
         for lm in det:
-            plt.scatter(lm[0], lm[1], marker="x", c="g")
+            plt.scatter(lm[0]+x, lm[1]+y, marker="x", c="g")
+        for lm in self.map:
+            plt.scatter(lm[0], lm[1], marker="x", c="b")
 
         plt.grid(True)
         plt.pause(0.0001)
@@ -92,7 +119,8 @@ class Simulation:
 
             if (r < 5 and abs(theta-theta_s) < 1):
                 # Assume cone can be detected
-                detected.append((x + rn.gauss(0, 0.05), y + rn.gauss(0, 0.05)))
+                detected.append((x-x_s + rn.gauss(0, 0.01),
+                                 y-y_s + rn.gauss(0, 0.01)))
         return detected
 
     def doPublishing(self, detected):
@@ -106,11 +134,17 @@ class Simulation:
         detected_msg.y = y_list
         detected_msg.header.frame_id = "base_link"
         self.conePub.publish(detected_msg)
-        pse = Pose2D()
-        pse.x = self.car.x
-        pse.y = self.car.y
-        pse.theta = self.car.theta
-        self.odomPub.publish(pse)
+        # pse = Pose2D()
+        # pse.x = self.car.x
+        # pse.y = self.car.y
+        # pse.theta = self.car.theta
+        # self.odomPub.publish(pse)
+        # Publish command
+        cmd_msg = mur_drive_cmd()
+        cmd_msg.header.frame_id = "base_link"
+        cmd_msg.omega = self.omegaVel
+        cmd_msg.vel = self.v
+        self.cmdPub.publish(cmd_msg)
         return
 
 
@@ -149,7 +183,7 @@ class robot:
 
 if __name__ == "__main__":
     rospy.init_node('slamVal')
-    rateHz = 30
+    rateHz = 10
     targetLMTopic = "/cones/lidar"
     targetPoseTopic = "/Pose/2D"
 

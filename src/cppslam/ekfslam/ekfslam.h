@@ -1,18 +1,26 @@
 #ifndef EKF_H
 #define EFK_H
 #include "ros/ros.h"
-#include <sensor_msgs/PointCloud2.h>
 #include <math.h>
 #include <Eigen/Dense>
 #include "std_msgs/String.h"
 #include "geometry_msgs/Pose2D.h"
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "mur_common/cone_msg.h"
+#include "mur_common/mur_drive_cmd.h"
 #include <cassert>
 #include <vector>
 #include "../point/point.h"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+
+
+
+const double PI  =3.141592653589793238463;
+
+double pi2pi(double val);
+void printEigenMatrix(Eigen::MatrixXf mat);
+
 class ekfslam
 {
 
@@ -26,8 +34,8 @@ private:
 
 	void ptcloudclbCam(const mur_common::cone_msg &data);
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
-	void controlclb(std_msgs::String msg);
-	void odomclb(const nav_msgs::Odometry &data);
+	void odomclb(const geometry_msgs::Pose2D &data);
+	void controlclb(const mur_common::mur_drive_cmd &data);
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	ros::Subscriber control;
@@ -44,6 +52,7 @@ private:
 	void ProcessPoseMeasurements();
 	void Jacob_H(double q, Eigen::MatrixXf delta, int idx);
 	void calcInnovation( int idx, Point<double> lm);
+	void UpdateCovariance();
 	void publishPose();
 	void publishTrack();
 
@@ -59,11 +68,11 @@ private:
 
 	//static message topic names
 	std::string CONE_MSG = "/cone_msg";
-	std::string CAM_TOPIC = "/camera/cones" + CONE_MSG;
+	std::string CAM_TOPIC = "/camera/cones";
 	std::string LIDAR_TOPIC = "/lidar/cones";
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
-
+	std::string CONTROL_TOPIC = "/control_cmd";
 	// Arrays & vectors that define the EKF
 	Eigen::MatrixXf px;	 // predicted mean
 	Eigen::MatrixXf pcv; // predicted Covariance
@@ -75,6 +84,7 @@ private:
 	Eigen::MatrixXf x;	// state
 	Eigen::MatrixXf cv; //state covariance
 	Eigen::MatrixXf u;
+	Eigen::MatrixXf G;
 	
 	Eigen::MatrixXf H; 
 
