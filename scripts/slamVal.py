@@ -57,8 +57,8 @@ class Simulation:
         plt.xlabel('x (m)')
         plt.ylabel('y (m)')
         plt.ion()
-        self.v = 0.5
-        self.omegaVel = 0.5
+        self.v = 0.2
+        self.omegaVel = 0.1
         while(not rospy.is_shutdown()):
             '''
             Updating of simulation and plotting

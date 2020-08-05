@@ -104,7 +104,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
-	MAX_DISTANCE = 0.3; 
+	MAX_DISTANCE = 1; 
 	
 	// defining the state shape at initialization
 	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
@@ -215,10 +215,11 @@ void ekfslam::runnable()
 					ROS_INFO("Resizing complete");
 			}
 			y = Eigen::MatrixXf::Zero(2,1);
-			y(0,0) = xlm - px(STATE_SIZE + idx * LM_SIZE,0); 
-			y(1,0) = ylm - px(STATE_SIZE + idx * LM_SIZE + 1,0);
-			// printf("Y"); 
-			// printEigenMatrix(y);
+			y(0,0) = -xlm + px(STATE_SIZE + idx * LM_SIZE, 0); 
+			y(1,0) = -ylm + px(STATE_SIZE + idx * LM_SIZE + 1,0);
+
+			printf("Y"); 
+			printEigenMatrix(y);
 			
 			// Compute sensor Jacobian and F matrix 
 			Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
@@ -226,8 +227,8 @@ void ekfslam::runnable()
 			F_j(0,0) = 1; 
 			F_j(1,1) = 1; 
 			F_j(2,2) = 1; 
-			F_j(3,3) = 1; 
-			F_j(4,4) = 1;
+			F_j(3,3) = 0; 
+			F_j(4,4) = 0;
 			F_j(5,(idx)*LM_SIZE + STATE_SIZE) = 1;
 			F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
 
@@ -270,8 +271,11 @@ void ekfslam::runnable()
 		}
 		x = px; 
 		cv = pcv;
-		// printf("RAW STATE"); 
-		// printEigenMatrix(x);
+		printf("X"); 
+		printEigenMatrix(x);
+		printf("CV"); 
+		printEigenMatrix(cv);
+		
 
 		publishTrack();
 		publishPose();
@@ -443,7 +447,11 @@ void ekfslam::UpdateCovariance(){
 	double theta = x(3,0);
 	double v = x(4,0);
 	jf(0,2) = -dt * v * sin(theta); 
-	jf(1,2) = dt * v * cos(theta); 
+	jf(1,2) = dt * v * cos(theta);
+	jf(0,3) = v*cos(theta);
+	jf(1,3) = v*cos(theta);
+	jf(2,4) = dt; 
+
 	G = I + F.transpose() * jf * F;
 	 
 	cv_tmp = Eigen::MatrixXf::Zero(STATE_SIZE, STATE_SIZE);
