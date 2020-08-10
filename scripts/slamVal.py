@@ -27,7 +27,7 @@ def pi2pi(val):
 
 class Simulation:
     def __init__(self, odomTopic, conesTopic, rate):
-        self.tr = map(10, 10, 10)
+        self.tr = map(10, 10, 20)
         self.car = robot()
         self.map = []
         self.poseEst = robot()
@@ -58,7 +58,7 @@ class Simulation:
         plt.ylabel('y (m)')
         plt.ion()
         self.v = 0.2
-        self.omegaVel = 0.1
+        self.omegaVel = 0.17
         while(not rospy.is_shutdown()):
             '''
             Updating of simulation and plotting
@@ -88,12 +88,14 @@ class Simulation:
         x = self.poseEst.x
         y = self.poseEst.y
         theta = self.poseEst.theta
-        plt.arrow(x, y, self.v * math.cos(theta), self.v * math.sin(theta))
+        plt.arrow(x, y, self.v * math.cos(theta),
+                  self.v * math.sin(theta), head_width=0.05, head_length=0.1, fc='b', ec='b')
 
         x = self.car.x
         y = self.car.y
         theta = self.car.theta
-        plt.arrow(x, y, self.v * math.cos(theta), self.v * math.sin(theta))
+        plt.arrow(x, y, self.v * math.cos(theta), self.v * math.sin(theta),
+                  head_width=0.05, head_length=0.1, fc='g', ec='g')
 
         for lm in self.tr.track:
             plt.scatter(lm[0], lm[1], marker="o", c="r", )
@@ -119,8 +121,8 @@ class Simulation:
 
             if (r < 5 and abs(theta-theta_s) < 1):
                 # Assume cone can be detected
-                detected.append((x-x_s + rn.gauss(0, 0.01),
-                                 y-y_s + rn.gauss(0, 0.01)))
+                detected.append((x-x_s + rn.gauss(0, 0.02),
+                                 y-y_s + rn.gauss(0, 0.02)))
         return detected
 
     def doPublishing(self, detected):
@@ -156,7 +158,7 @@ class map:
         pass
 
     def generateRandomTrack(self, num_cones):
-        self.track = []
+        self.track = [(1, 1)]
         for i in range(num_cones):
             x = rn.uniform(self.x_range[0], self.x_range[1])
             y = rn.uniform(self.y_range[0], self.y_range[1])
@@ -174,9 +176,9 @@ class robot:
         '''
         Perform forward kinematics state update
         '''
-        self.x = self.x + dt * v * math.cos(self.theta)
-        self.y = self.y + dt * v * math.sin(self.theta)
-        self.theta = self.theta + dt * omega
+        self.x = self.x + dt * (v + rn.gauss(0, 0.01)) * math.cos(self.theta)
+        self.y = self.y + dt * (v + rn.gauss(0, 0.01)) * math.sin(self.theta)
+        self.theta = self.theta + dt * (omega + rn.gauss(0, 0.01))
         self.theta = pi2pi(self.theta)
         return
 
