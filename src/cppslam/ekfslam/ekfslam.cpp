@@ -177,8 +177,8 @@ void ekfslam::runnable()
 		// printEigenMatrix(pcv);
 		// Sensor Processing (only lidar for now)
 		newMeasurements = z_lid.cols();
-		printf("Lidar");
-		printEigenMatrix(z_lid);
+		// printf("Lidar");
+		// printEigenMatrix(z_lid);
 
 		// ROS_INFO("Measurements: %d ",newMeasurements);
 		// associateMeasurements(); 
@@ -187,11 +187,11 @@ void ekfslam::runnable()
 			// do data association
 			xlm = px(0,0) + z_lid(0,i);
 			ylm = px(1,0) + z_lid(1,i);
-			ROS_INFO("XLM: %lf", xlm);
-			ROS_INFO("YLM: %lf", ylm);
+			// ROS_INFO("XLM: %lf", xlm);
+			// ROS_INFO("YLM: %lf", ylm);
 			
 			idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
-			ROS_INFO("Index: %d",idx);
+			// ROS_INFO("Index: %d",idx);
 
 			if (idx >= lm_num){
 					// New landmark discovered
@@ -270,8 +270,8 @@ void ekfslam::runnable()
 		}
 		x = px; 
 		cv = pcv;
-		printf("X"); 
-		printEigenMatrix(x);
+		// printf("X"); 
+		// printEigenMatrix(x);
 		// printf("CV"); 
 		// printEigenMatrix(cv);
 		
