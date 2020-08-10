@@ -6,7 +6,8 @@ int ekfslam::launchSubscribers(){
 	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
-	// control = nh.subscribe("/Cmd_vel", QUE_SIZE, &ekfslam::controlclb, this); 
+	odomSub = nh.subscribe(ODOM_TOPIC, QUE_SIZE, &ekfslam::odomclb, this);
+	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &ekfslam::controlclb, this); 
 	}
 	catch (const char *msg){
 		ROS_ERROR_STREAM(msg);
@@ -97,12 +98,11 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	int status = 1;
 	
 	lm_num = 0;
-	LM_SIZE = 2;
+	
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
-	MAX_DISTANCE = 0.5; 
-	
+
 	// defining the state shape at initialization
 	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
 	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
@@ -147,6 +147,7 @@ void ekfslam::ProcessPoseMeasurements(){
  * lm = [lm1, lm2 lm3 ...]
  * */
 void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
+	
 	return;
 }
 void ekfslam::runnable()
@@ -157,11 +158,8 @@ void ekfslam::runnable()
 	int newMeasurements, idx, new_size, rows;
 	double xlm, ylm; 
 	ros::Rate looprate(HZ);
-	ros::Subscriber odomSub;
-	ros::Subscriber controlSub;
 	
-	odomSub = nh.subscribe("/odom", QUE_SIZE, &ekfslam::odomclb, this);
-	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &ekfslam::controlclb, this);
+
 
 	while (ros::ok())
 	{

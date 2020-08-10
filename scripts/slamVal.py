@@ -178,7 +178,7 @@ class robot:
         '''
         self.x = self.x + dt * (v + rn.gauss(0, 0.01)) * math.cos(self.theta)
         self.y = self.y + dt * (v + rn.gauss(0, 0.01)) * math.sin(self.theta)
-        self.theta = self.theta + dt * (omega + rn.gauss(0, 0.01))
+        self.theta = self.theta + dt * (omega + rn.gauss(0, 0.1))
         self.theta = pi2pi(self.theta)
         return
 

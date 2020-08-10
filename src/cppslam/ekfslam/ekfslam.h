@@ -14,7 +14,8 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 
-
+#define MAX_DISTANCE  0.5
+#define LM_SIZE 2
 
 const double PI  =3.141592653589793238463;
 
@@ -38,7 +39,9 @@ private:
 	void controlclb(const mur_common::mur_drive_cmd &data);
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
-	ros::Subscriber control;
+	ros::Subscriber odomSub;
+	ros::Subscriber controlSub;
+
 	ros::Publisher track;
 	ros::Publisher pose;
 
@@ -58,16 +61,18 @@ private:
 
 	Point<double> getAbsolutePose(Point<double> p);
 
+
+
 	int STATE_SIZE;
 	int controlSize;
 
-	double MAX_DISTANCE;  
 	ros::NodeHandle nh;
 	double dt;
 	int HZ;
 
 	//static message topic names
 	std::string CONE_MSG = "/cone_msg";
+	std::string ODOM_TOPIC = "/odom";
 	std::string CAM_TOPIC = "/camera/cones";
 	std::string LIDAR_TOPIC = "/lidar/cones";
 	std::string FILTERED_TOPIC = "/slam/map";
@@ -98,7 +103,6 @@ private:
 	Eigen::MatrixXf z;
 
 	int lm_num; // keeps track of the number of landmarks
-	int LM_SIZE; // size of any given cone measurement (2)
 	std::vector<std::vector<discreteBayes>> coneExistence;
 
 	// std::vector<std::vector <Point<float>> > test;
