@@ -13,7 +13,7 @@
 #include "../point/point.h"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-
+#include "geometry_msgs/Twist.h"
 #define MAX_DISTANCE  0.5
 #define LM_SIZE 2
 
@@ -36,7 +36,7 @@ private:
 	void ptcloudclbCam(const mur_common::cone_msg &data);
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
 	void odomclb(const geometry_msgs::Pose2D &data);
-	void controlclb(const mur_common::mur_drive_cmd &data);
+	void controlclb(const geometry_msgs::Twist &data);
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	ros::Subscriber odomSub;

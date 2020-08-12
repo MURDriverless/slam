@@ -6,7 +6,7 @@ int ekfslam::launchSubscribers(){
 	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
-	odomSub = nh.subscribe(ODOM_TOPIC, QUE_SIZE, &ekfslam::odomclb, this);
+	// odomSub = nh.subscribe(ODOM_TOPIC, QUE_SIZE, &ekfslam::odomclb, this);
 	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &ekfslam::controlclb, this); 
 	}
 	catch (const char *msg){
@@ -261,7 +261,7 @@ void ekfslam::runnable()
 			K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
 			Eigen::MatrixXf k_tmp; 
 			Eigen::MatrixXf Q_small; 
-			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*0.01;
+			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*0.1;
 			k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 			// printf("K_temp");
 			// printEigenMatrix(k_tmp);
@@ -478,10 +478,10 @@ void ekfslam::UpdateCovariance(){
 	return;
 }
 
-void ekfslam::controlclb(const mur_common::mur_drive_cmd &data)
+void ekfslam::controlclb(const geometry_msgs::Twist &data)
 {
-	u(0,0) = data.vel;
-	u(0,1) = data.omega;
+	u(0,0) = data.linear.x;
+	u(0,1) = data.angular.z;
 	return;
 }
 double pi2pi(double val){
