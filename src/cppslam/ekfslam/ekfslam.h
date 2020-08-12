@@ -14,7 +14,7 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include "geometry_msgs/Twist.h"
-#define MAX_DISTANCE  0.5
+#define MAX_DISTANCE  0.3
 #define LM_SIZE 2
 
 const double PI  =3.141592653589793238463;

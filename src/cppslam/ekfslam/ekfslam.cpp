@@ -186,17 +186,17 @@ void ekfslam::runnable()
 			xr = z_lid(0,i); 
 			yr = z_lid(1,i); 
 			theta_p = px(2,0);
-			xlm = px(0,0) + xr * cos(theta_p) + yr * sin(theta_p);
-			ylm = px(1,0) - xr * sin(theta_p) + yr * cos(theta_p);
-			ROS_INFO("XLM: %lf", xlm);
-			ROS_INFO("YLM: %lf", ylm);
+			xlm = px(0,0) + xr * cos(theta_p) - yr * sin(theta_p);
+			ylm = px(1,0) + xr * sin(theta_p) + yr * cos(theta_p);
+			// ROS_INFO("XLM: %lf", xlm);
+			// ROS_INFO("YLM: %lf", ylm);
 			
 			idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
-			ROS_INFO("Index: %d",idx);
+			// ROS_INFO("Index: %d",idx);
 
 			if (idx >= lm_num){
 					// New landmark discovered
-					ROS_INFO_STREAM("New landmark detected");
+					// ROS_INFO_STREAM("New landmark detected");
 					lm_num++;
 					// resize state arrays
 					new_size = px.rows() + LM_SIZE; 
@@ -209,8 +209,8 @@ void ekfslam::runnable()
 
 					cv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
 					pcv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
-					pcv(new_size-1,new_size-1) = 0.1;
-					pcv(new_size-2,new_size-2) = 0.1;
+					pcv(new_size-1,new_size-1) = 0.5;
+					pcv(new_size-2,new_size-2) = 0.5;
 					
 					
 					// ROS_INFO("Resizing complete");
@@ -219,8 +219,8 @@ void ekfslam::runnable()
 			y(0,0) = xlm - (px(STATE_SIZE + idx * LM_SIZE, 0)); 
 			y(1,0) = ylm - (px(STATE_SIZE + idx * LM_SIZE + 1,0));
 
-			printf("y");
-			printEigenMatrix(y);	
+			// printf("y");
+			// printEigenMatrix(y);	
 			// Compute sensor Jacobian and F matrix 
 			Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
 			Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(LM_SIZE,STATE_SIZE+LM_SIZE);
@@ -233,46 +233,47 @@ void ekfslam::runnable()
 			F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
 
 			H_j(0,0) = 1;
-			H_j(0,2) = -xr * sin(theta_p) + yr * cos(theta_p);  
+			H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
+
 			H_j(0,STATE_SIZE) = cos(theta_p);
 			H_j(0,STATE_SIZE+1) = sin(theta_p);
 
 			H_j(0,STATE_SIZE) = cos(theta_p);
-			H_j(0,STATE_SIZE+1) = sin(theta_p);
+			H_j(0,STATE_SIZE+1) = -sin(theta_p);
 			 
 			H_j(1,1) = 1;
-			H_j(1,2) = -xr * cos(theta_p) - yr * sin(theta_p);
-			H_j(1,STATE_SIZE) = -sin(theta_p);
+			H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
+			H_j(1,STATE_SIZE) = sin(theta_p);
 			H_j(1,STATE_SIZE+1) = cos(theta_p);
 			H_j = H_j * - 1;
 			H = Eigen::MatrixXf::Zero(2,7);
 			H = H_j * F_j;
-			printf("F_j");
-			printEigenMatrix(F_j);
-			printf("H_j");
+			// printf("F_j");
+			// printEigenMatrix(F_j);
+			// printf("H_j");
 
-			printEigenMatrix(H_j);
-			printf("H");
+			// printEigenMatrix(H_j);
+			// printf("H");
 
-			printEigenMatrix(H);
-			printf("Pcv");
-			printEigenMatrix(pcv);
+			// printEigenMatrix(H);
+			// printf("Pcv");
+			// printEigenMatrix(pcv);
 
 			K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
 			Eigen::MatrixXf k_tmp; 
 			Eigen::MatrixXf Q_small; 
-			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*0.1;
+			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*5.0;
 			k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 			// printf("K_temp");
 			// printEigenMatrix(k_tmp);
 			K = pcv * H.transpose() * k_tmp;
-			printf("K");
-			printEigenMatrix(K);
+			// printf("K");
+			// printEigenMatrix(K);
 
 
 			px = px +  K*y;
-			printf("px");
-			printEigenMatrix(px);
+			// printf("px");
+			// printEigenMatrix(px);
 
 			Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 			pcv = (I - K * H) * pcv;  
@@ -281,8 +282,8 @@ void ekfslam::runnable()
 		}
 		x = px; 
 		cv = pcv;
-		printf("X"); 
-		printEigenMatrix(x);
+		// printf("X"); 
+		// printEigenMatrix(x);
 		// printf("CV"); 
 		// printEigenMatrix(cv);
 		

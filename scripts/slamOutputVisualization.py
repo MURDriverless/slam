@@ -52,9 +52,8 @@ class state:
 
 if __name__ == "__main__":
     rospy.init_node('slamOutputVisualization')
-    rateHz = 5
     st = state()
-    ros_rate = rospy.Rate(5)
+    ros_rate = rospy.Rate(1)
     while(not rospy.is_shutdown()):
         st.plotting()
         ros_rate.sleep()
