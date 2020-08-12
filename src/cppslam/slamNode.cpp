@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 
 #define STATE_SIZE 5
-#define HZ 10
+#define HZ 5
 
 int main(int argc, char **argv)
 {

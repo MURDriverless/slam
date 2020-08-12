@@ -74,10 +74,10 @@ private:
 	std::string CONE_MSG = "/cone_msg";
 	std::string ODOM_TOPIC = "/odom";
 	std::string CAM_TOPIC = "/camera/cones";
-	std::string LIDAR_TOPIC = "/lidar/cones";
+	std::string LIDAR_TOPIC = "/cone_messages";
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
-	std::string CONTROL_TOPIC = "/control_cmd";
+	std::string CONTROL_TOPIC = "/cmd_vel";
 	// Arrays & vectors that define the EKF
 	Eigen::MatrixXf px;	 // predicted mean
 	Eigen::MatrixXf pcv; // predicted Covariance

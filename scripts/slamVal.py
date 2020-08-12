@@ -27,15 +27,16 @@ def pi2pi(val):
 
 class Simulation:
     def __init__(self, odomTopic, conesTopic, rate):
-        self.tr = map(10, 10, 20)
+        self.tr = map(10, 10, 15)
         self.car = robot()
         self.map = []
         self.poseEst = robot()
         self.rateHz = rate
-        self.conePub = rospy.Publisher("/lidar/cones", cone_msg, queue_size=1)
+        self.conePub = rospy.Publisher(
+            "/cone_messages", cone_msg, queue_size=1)
         # self.odomPub = rospy.Publisher("/Odom", Pose2D, queue_size=1)
         self.cmdPub = rospy.Publisher(
-            "/control_cmd", mur_drive_cmd, queue_size=1)
+            "/cmd_vel", mur_drive_cmd, queue_size=1)
         self.mapSub = rospy.Subscriber(
             "/slam/map", cone_msg, self.mapClb, queue_size=1)
         self.poseSub = rospy.Subscriber(
@@ -101,7 +102,8 @@ class Simulation:
             plt.scatter(lm[0], lm[1], marker="o", c="r", )
 
         for lm in det:
-            plt.scatter(lm[0]+x, lm[1]+y, marker="x", c="g")
+            plt.scatter(lm[0]*math.cos(theta) + lm[1] * math.sin(theta) +
+                        x, -1 * lm[0]*math.sin(theta) + lm[1] * math.cos(theta)+y, marker="x", c="g")
         for lm in self.map:
             plt.scatter(lm[0], lm[1], marker="x", c="b")
 
@@ -121,8 +123,10 @@ class Simulation:
 
             if (r < 5 and abs(theta-theta_s) < 1):
                 # Assume cone can be detected
-                detected.append((x-x_s + rn.gauss(0, 0.02),
-                                 y-y_s + rn.gauss(0, 0.02)))
+                xr = (x-x_s)*math.cos(theta_s) - (y-y_s)*math.sin(theta_s)
+                yr = +(x-x_s)*math.sin(theta_s) + (y-y_s)*math.cos(theta_s)
+                detected.append((xr + rn.gauss(0, 0.01),
+                                 yr + rn.gauss(0, 0.01)))
         return detected
 
     def doPublishing(self, detected):
@@ -178,14 +182,14 @@ class robot:
         '''
         self.x = self.x + dt * (v + rn.gauss(0, 0.01)) * math.cos(self.theta)
         self.y = self.y + dt * (v + rn.gauss(0, 0.01)) * math.sin(self.theta)
-        self.theta = self.theta + dt * (omega + rn.gauss(0, 0.1))
+        self.theta = self.theta + dt * (omega + rn.gauss(0, 0.01))
         self.theta = pi2pi(self.theta)
         return
 
 
 if __name__ == "__main__":
     rospy.init_node('slamVal')
-    rateHz = 10
+    rateHz = 5
     targetLMTopic = "/cones/lidar"
     targetPoseTopic = "/Pose/2D"
 
