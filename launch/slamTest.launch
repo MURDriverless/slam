@@ -1,18 +1,10 @@
-
+<?xml version = "1.0"?>
 <launch>
-
-
-    <node pkg="slam" name="pc2Conversions" type="pc2Conversions.py" output="screen"></node>
-
-
-    <param name="use_sim_time" value="true"/>
-    <arg name="fssim_config" default="$(find fssim)/config/simulation.yaml"/>
-
-    <include file="$(find fssim)/launch/start.launch">
-        <arg name="fssim_config" value="$(arg fssim_config)"/>
-    </include>
-
-    <include file="$(find fssim)/launch/rviz.launch"/>
 	<node pkg = "slam" type = "slamNode" name = "slamNode" output = "screen" ></node>
 
+
+    <node pkg="slam" name="slamVal" type="slamVal.py" output="screen"></node>
+
+
 </launch>
+

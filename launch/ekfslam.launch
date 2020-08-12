@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="slam" type="ekfslamrun" name="ekfslamrun.py" output="screen"> </node> 
-</launch>
