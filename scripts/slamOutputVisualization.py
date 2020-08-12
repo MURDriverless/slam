@@ -55,6 +55,6 @@ if __name__ == "__main__":
     rateHz = 5
     st = state()
     ros_rate = rospy.Rate(5)
-    while(1):
+    while(not rospy.is_shutdown()):
         st.plotting()
         ros_rate.sleep()
