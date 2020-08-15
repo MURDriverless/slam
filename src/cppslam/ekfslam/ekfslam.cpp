@@ -95,7 +95,7 @@ void ekfslam::associateMeasurements(){
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
 	ROS_INFO_STREAM("Extended Kalman filter created");
-
+	discreteBayes coneColourFilter();
 	nh = n;
 	int status = 1;
 	
@@ -104,7 +104,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
-
+	
 	// defining the state shape at initialization
 	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
 	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
@@ -114,6 +114,21 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	cv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE); //state covariance 
 	u = Eigen::MatrixXf::Zero(1,2); // Control
 	Q = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
+	orange.r = 1;
+	orange.g = 0.5; 
+	orange.b = 0;
+
+	blue.r = 0;
+	blue.g = 0.0; 
+	blue.b = 1;
+	
+	yellow.r = 1.0;
+	yellow.g = 0.9; 
+	yellow.b = 0;
+
+	white.r = 1.0; 
+	white.b = 1.0; 
+	white.g = 1.0;
 	while (ros::ok())
 	{
 		try
@@ -135,21 +150,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 			ROS_ERROR_STREAM(msg);
 		}
 	}
-	orange.r = 1;
-	orange.g = 0.5; 
-	orange.b = 0;
 
-	blue.r = 0;
-	blue.g = 0.0; 
-	blue.b = 1;
-	
-	yellow.r = 1;
-	yellow.g = 0.9; 
-	yellow.b = 0;
-
-	white.r = 1; 
-	white.b = 1; 
-	white.g = 1;
 	return;
 }
 
@@ -173,7 +174,7 @@ void ekfslam::runnable()
 	Here is the main loop for the EKF SLAM method  
 */
 {
-	int newMeasurements, idx, new_size, rows;
+	int newMeasurements, idx, new_size, rows, colour;
 	double xlm, ylm, xr, yr, theta_p; 
 	ros::Rate looprate(HZ);
 	
@@ -212,6 +213,19 @@ void ekfslam::runnable()
 			// ROS_INFO("YLM: %lf", ylm);
 			
 			idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
+			if( std::string(lidar_colors[i]).compare(BLUE_STR)){
+				colour = BLUE;
+			}
+			else if( std::string(lidar_colors[i]).compare(ORANGE_STR)){
+				colour = ORANGE;
+			}
+			else if( std::string(lidar_colors[i]).compare(YELLOW_STR)){
+				colour = YELLOW;
+			}
+			else if( std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+				colour = UNKNOWN;
+			}
+			coneColourFilter.update_measurement(idx,colour);
 			// ROS_INFO("Index: %d",idx);
 
 			if (idx >= lm_num){
@@ -415,11 +429,12 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 		return;
 	};
 	assert (length_x == length_y);
-
+	lidar_colors.clear();
 	z_lid = Eigen::MatrixXf::Zero(3,length_x);
 	for (int i = 0; i <length_x; i++){
 		z_lid(0,i) = data.x[i];
 		z_lid(1,i) = data.y[i];
+		lidar_colors.push_back(data.colour[i]);
 		z_lid(2,i) = 0;
 		// ROS_INFO("[ %f, %f, %f]",data.x[i],data.y[i],0.0 );
 	}
@@ -456,8 +471,8 @@ void ekfslam::publishTrack()
 	cone_msg.x = x_cones; 
 	cone_msg.y = y_cones;
 	// Including a colour vector so its not empty, (but it is)
-	std::vector<std::string> cone_colour; 
-	cone_msg.colour = cone_colour;	
+	std::vector<std::string> cone_colours; 
+	cone_msg.colour = cone_colours;
 	track.publish(cone_msg);
 	// publish marker array
 
@@ -473,7 +488,7 @@ void ekfslam::publishTrack()
 		marker.action = visualization_msgs::Marker::ADD;
 		
 		// estimate colour 
-		colour = UNKNOWN;
+		colour = coneColourFilter.state(i,0);
 
 		marker.pose.position.x = x(STATE_SIZE+ i*LM_SIZE,0);
 		marker.pose.position.y = x(1 + STATE_SIZE+ i*LM_SIZE,0);

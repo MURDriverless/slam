@@ -3,36 +3,79 @@
 
 #include "discreteBayes.h"
 
-void discreteBayes::update(bool measured, double p_measured){
-    /*
-    Inputs:
-        measured: whether the 'thing' was measured. 
-        p_measured: (Probability that it exists given the measurement)
-     */
-    double x_z = measured ? p_measured:1-p_measured;
-
-    l_t = logOdds(x_z) - l_0 + l_t; 
-    
-    if (l_t>1.0){
-        state = true;
-    }
-    else {
-        state = false;
-    }
-    return; 
-}
-
-void discreteBayes::initialize(double p_measured){
-    return; 
-}
-double discreteBayes::logOdds(double x){
-    return log(x)/(1.0-log(x)); 
-}
-double discreteBayes::probFromLogOdds(double lt){
-    return 1.0/(1.0 + exp(lt));
-}
-bool discreteBayes::getState()
+void discreteBayes::update_measurement(int index, int measurement)
 {
-    return state; 
+    // check if index is a new cone)
+    int length = state.size();
+
+    if ((index+1) > length){
+        // new landmark do conservative resizing
+        state.conservativeResizeLike(Eigen::MatrixXf::Zero(index+1,1));
+        estimates.conservativeResizeLike(Eigen::MatrixXf::Zero(index+1,3));
+        state(index,0) = UNKNOWN;
+        estimates(index,BLUE) =  BLUE_PROB;
+        estimates(index,YELLOW) =  YELLOW_PROB;
+        estimates(index,ORANGE) =  ORANGE_PROB;
+    }
+    if (measurement == UNKNOWN) return;
+    for (int j = 0; j<CONE_VARIETIES; j++){
+        if (measurement==j){
+            estimates(index,j) +=  L_PROB_READING_T ;
+        }
+        else{
+            estimates(index,j) +=  L_PROB_READING_F; 
+        }
+    }
+    update_state();
+}
+void discreteBayes::update_state()
+{
+    int length = state.size();
+    double val; 
+    for (int i = 0; i < length; i++){
+        int min_indx = 3; 
+        double min_val = LARGE_NEGATIVE_NUMBER; 
+        for(int j = 0; j<CONE_VARIETIES; j++){
+            val = estimates(i,j)+ colour_prob[j];
+            if (val > min_val){
+                min_val = estimates(i,j); 
+                min_indx = j;
+            }
+        }
+        state(i,0) = min_indx;
+    }
+    renormalize_est();
+    return;
+}
+void discreteBayes::renormalize_est(){
+    double sum; 
+    for (int i = 0; i<state.size();i++){
+        sum = 0.0;
+        for (int j = 0; j<CONE_VARIETIES; j++){
+            sum += estimates(i,j);
+        }
+        for (int j = 0; j<CONE_VARIETIES; j++){
+            estimates(i,j) /= sum;
+        }
+    }
+}
+void printEigenMatrix(Eigen::MatrixXf mat){
+	printf("\n\n");
+	if (mat.rows() == 0){
+		ROS_WARN("ARRAY is empty");
+	}
+	int rows = mat.rows(); 
+	int cols = mat.cols(); 
+	printf("Rows: %d || Cols: %d \n\n", rows, cols);
+	printf("[");
+	for (int i = 0 ; i<mat.rows() ;i++){
+			printf("[");
+		for (int j = 0; j< mat.cols(); j++){
+			printf("%f ,", mat(i,j));
+		}
+		printf("]\n");
+	}
+	printf("]\n\n");
+	return;
 }
 #endif

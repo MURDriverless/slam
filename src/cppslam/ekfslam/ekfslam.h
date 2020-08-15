@@ -14,6 +14,7 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include "geometry_msgs/Twist.h"
+#include "../discreteBayesFilter/discreteBayes.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
 
@@ -25,6 +26,11 @@
 #define ORANGE 2
 #define UNKNOWN 3
 
+#define BLUE_STR "BLUE"
+#define ORANGE_STR "ORANGE"
+#define YELLOW_STR "YELLOW"
+#define UNKNOWN_STR "na"
+
 #define PUBLISH_MARKERS
 
 
@@ -35,8 +41,11 @@ void printEigenMatrix(Eigen::MatrixXf mat);
 
 typedef struct
 {
+	// red value
 	float r; 
+	// green value 
 	float g; 
+	// blue value
 	float b; 
 } rgb_t;
 
@@ -126,7 +135,7 @@ private:
 	Eigen::MatrixXf colur_odds;
 
 	int lm_num; // keeps track of the number of landmarks
-	std::vector<std::vector<discreteBayes>> coneExistence;
+	discreteBayes coneColourFilter;
 
 	// std::vector<std::vector <Point<float>> > test;
 
@@ -135,6 +144,10 @@ private:
 	rgb_t orange; 
 	rgb_t blue; 
 	rgb_t yellow;
-	rgb_t white; 
+	rgb_t white;
+
+	std::vector<std::string> lidar_colors; 
+	std::vector<std::string> camera_colors; 
+	
 };
 #endif
