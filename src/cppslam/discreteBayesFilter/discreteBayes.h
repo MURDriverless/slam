@@ -2,6 +2,7 @@
 #define DISCRETE_BAYES_H
 #include <math.h>
 #include <Eigen/Dense>
+#include "ros/ros.h"
 /*
     This class implements a discrete bayesian filter that estimates
     the colour of a cone given a series of readings. Main intended use case is 
@@ -11,10 +12,10 @@
 */
 
 #define CONE_VARIETIES 3
-#define LARGE_NEGATIVE_NUMBER -100000000000000;
-#define BLUE_PROB log(0.5); 
-#define YELLOW_PROB log(0.45); 
-#define ORANGE_PROB log(0.05);
+#define LARGE_NEGATIVE_NUMBER -100000000000000
+#define BLUE_PROB log(0.5)
+#define YELLOW_PROB log(0.45)
+#define ORANGE_PROB log(0.05)
 
 #define PROB_READING_T 0.99
 #define PROB_READING_F 1 - PROB_READING_T
@@ -28,6 +29,8 @@
 #define YELLOW 1
 #define ORANGE 2
 #define UNKNOWN 3
+
+void printEigenMatrix(Eigen::MatrixXf mat);
 
 class discreteBayes{
     public:
@@ -46,6 +49,9 @@ class discreteBayes{
         void update_measurement(int index, int measurement);
     private:
         Eigen::MatrixXf estimates; 
+        void renormalize_est();
         void update_state();
+
+        double colour_prob[3] = {BLUE_PROB,YELLOW_PROB, ORANGE_PROB};
 };
 #endif
