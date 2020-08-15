@@ -20,10 +20,10 @@
 #define MAX_DISTANCE  0.3
 #define LM_SIZE 2
 
-#define BLUE 1
-#define YELLOW 2
-#define ORANGE 3
-#define UNKNOWN 0
+#define BLUE 0
+#define YELLOW 1
+#define ORANGE 2
+#define UNKNOWN 3
 
 #define PUBLISH_MARKERS
 
