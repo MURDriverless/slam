@@ -2,37 +2,46 @@
 #define DISCRETE_BAYES_CPP
 
 #include "discreteBayes.h"
-
-void discreteBayes::update(bool measured, double p_measured){
-    /*
-    Inputs:
-        measured: whether the 'thing' was measured. 
-        p_measured: (Probability that it exists given the measurement)
-     */
-    double x_z = measured ? p_measured:1-p_measured;
-
-    l_t = logOdds(x_z) - l_0 + l_t; 
-    
-    if (l_t>1.0){
-        state = true;
-    }
-    else {
-        state = false;
-    }
-    return; 
-}
-
-void discreteBayes::initialize(double p_measured){
-    return; 
-}
-double discreteBayes::logOdds(double x){
-    return log(x)/(1.0-log(x)); 
-}
-double discreteBayes::probFromLogOdds(double lt){
-    return 1.0/(1.0 + exp(lt));
-}
-bool discreteBayes::getState()
+void discreteBayes::update_measurement(int index, int measurement)
 {
-    return state; 
+    // check if index is a new cone)
+    int length = state.size();
+
+
+    if (index >= length){
+        // new landmark do conservative resizing
+        state.conservativeResizeLike(Eigen::MatrixXf::Zero(index,1));
+        estimates.conservativeResizeLike(Eigen::MatrixXf::Zero(index,3));
+        state(index,0) = UNKNOWN;
+        estimates(index,BLUE) =  BLUE_PROB;
+        estimates(index,YELLOW) =  YELLOW_PROB;
+        estimates(index,ORANGE) =  ORANGE_PROB;
+    }
+    if (measurement == UNKNOWN) return;
+    for (int j = 0; j<CONE_VARIETIES; j++){
+        if (measurement==j){
+            estimates(index,j) +=  L_PROB_READING_T;
+        }
+        else{
+            estimates(index,j) +=  L_PROB_READING_F; 
+        }
+    }
+    update_state();
+}
+void discreteBayes::update_state(){
+    int length = state.size();
+
+    for (int i = 0; i < length; i++){
+        int min_indx = 3; 
+        double min_val = LARGE_NEGATIVE_NUMBER; 
+        for(int j = 0; j<CONE_VARIETIES; j++){
+            if (estimates(i,j) > min_val){
+                min_val = estimates(i,j); 
+                min_indx = j;
+            }
+        }
+        state(i,0) = min_indx;
+    }
+    return;
 }
 #endif
