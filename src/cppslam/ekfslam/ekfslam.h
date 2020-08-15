@@ -27,6 +27,7 @@
 
 #define PUBLISH_MARKERS
 
+
 const double PI = 3.141592653589793238463;
 
 double pi2pi(double val);
@@ -121,6 +122,8 @@ private:
 	Eigen::MatrixXf z_lid;
 
 	Eigen::MatrixXf z;
+
+	Eigen::MatrixXf colur_odds;
 
 	int lm_num; // keeps track of the number of landmarks
 	std::vector<std::vector<discreteBayes>> coneExistence;
