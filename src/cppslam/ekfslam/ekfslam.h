@@ -14,6 +14,7 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include "geometry_msgs/Twist.h"
+#include "../discreteBayesFilter/discreteBayes.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
 
@@ -126,7 +127,7 @@ private:
 	Eigen::MatrixXf colur_odds;
 
 	int lm_num; // keeps track of the number of landmarks
-	std::vector<std::vector<discreteBayes>> coneExistence;
+	discreteBayes coneColour;
 
 	// std::vector<std::vector <Point<float>> > test;
 

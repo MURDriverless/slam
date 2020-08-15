@@ -104,7 +104,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	STATE_SIZE = state_size;
 	dt = 1.0/hz; //define the frequency of the system 
 	HZ = hz;
-
+	
 	// defining the state shape at initialization
 	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
 	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance

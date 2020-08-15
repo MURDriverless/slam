@@ -31,7 +31,7 @@
 
 class discreteBayes{
     public:
-        Eigen::Vector2d state; 
+        Eigen::VectorXf state; 
         discreteBayes()
         {
            estimates = Eigen::MatrixXf::Zero(1,CONE_VARIETIES);
