@@ -456,8 +456,8 @@ void ekfslam::publishTrack()
 	cone_msg.x = x_cones; 
 	cone_msg.y = y_cones;
 	// Including a colour vector so its not empty, (but it is)
-	std::vector<std::string> cone_colour; 
-	cone_msg.colour = cone_colour;	
+	std::vector<std::string> cone_colours; 
+	cone_msg.colour = cone_colours;
 	track.publish(cone_msg);
 	// publish marker array
 

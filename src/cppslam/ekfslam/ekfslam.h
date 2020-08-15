@@ -26,6 +26,11 @@
 #define ORANGE 2
 #define UNKNOWN 3
 
+#define BLUE_STR = "BLUE"
+#define ORANGE_STR = "ORANGE"
+#define YELLOW_STR = "YELLOW"
+#define UNKNOWN_STR = "na"
+
 #define PUBLISH_MARKERS
 
 
@@ -36,8 +41,11 @@ void printEigenMatrix(Eigen::MatrixXf mat);
 
 typedef struct
 {
+	// red value
 	float r; 
+	// green value 
 	float g; 
+	// blue value
 	float b; 
 } rgb_t;
 
@@ -127,7 +135,7 @@ private:
 	Eigen::MatrixXf colur_odds;
 
 	int lm_num; // keeps track of the number of landmarks
-	discreteBayes coneColour;
+	discreteBayes coneColourFilter;
 
 	// std::vector<std::vector <Point<float>> > test;
 
