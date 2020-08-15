@@ -19,7 +19,9 @@ int ekfslam::launchSubscribers(){
 int ekfslam::launchPublishers(){
 	try {
 	track = nh.advertise<mur_common::cone_msg>(FILTERED_TOPIC, QUE_SIZE); 
-	pose = nh.advertise<geometry_msgs::Pose2D>(SLAM_POSE_TOPIC, QUE_SIZE);	  
+	pose = nh.advertise<nav_msgs::Odometry>(SLAM_POSE_TOPIC, QUE_SIZE);
+	track_markers = nh.advertise<visualization_msgs::MarkerArray>(MARKER_ARRAY_TOPIC, QUE_SIZE);
+
 	}
 	catch(const char *msg){
 		ROS_ERROR_STREAM(msg);
@@ -133,6 +135,22 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 			ROS_ERROR_STREAM(msg);
 		}
 	}
+	orange.r = 1;
+	orange.g = 0.5; 
+	orange.b = 0;
+
+	blue.r = 0;
+	blue.g = 0.0; 
+	blue.b = 1;
+	
+	yellow.r = 1;
+	yellow.g = 0.9; 
+	yellow.b = 0;
+
+	white.r = 1; 
+	white.b = 1; 
+	white.g = 1;
+	return;
 }
 
 void ekfslam::ProcessPoseMeasurements(){
@@ -159,8 +177,10 @@ void ekfslam::runnable()
 	double xlm, ylm, xr, yr, theta_p; 
 	ros::Rate looprate(HZ);
 	
-
-
+	x(0,0) = -52.0;
+	x(1,0) = 0;
+	x(2,0) = 0;
+	
 	while (ros::ok())
 	{
 		// predict Step
@@ -262,7 +282,7 @@ void ekfslam::runnable()
 			K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
 			Eigen::MatrixXf k_tmp; 
 			Eigen::MatrixXf Q_small; 
-			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*5.0;
+			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*10.0;
 			k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 			// printf("K_temp");
 			// printEigenMatrix(k_tmp);
@@ -407,11 +427,13 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 }
 void ekfslam::publishPose()
 {
-	// publish pose estimate
-	geometry_msgs::Pose2D pose_pub;
-	pose_pub.x = px(0,0);
-	pose_pub.y = px(1,0);
-	pose_pub.theta = px(2,0);
+	nav_msgs::Odometry pose_pub;
+	pose_pub.header.frame_id = "map";
+	pose_pub.header.stamp = ros::Time();
+
+	pose_pub.pose.pose.position.x = px(0,0);
+	pose_pub.pose.pose.position.y = px(1,0);
+	pose_pub.pose.pose.orientation = tf::createQuaternionMsgFromYaw(px(2,0));
 	pose.publish(pose_pub); 
 }
 
@@ -421,7 +443,7 @@ void ekfslam::publishTrack()
 	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
 
-	cone_msg.header.frame_id = "/base_link";
+	cone_msg.header.frame_id = "map";
 	cone_msg.header.stamp = current_time;
 
 	std::vector<float> x_cones(lm_num);
@@ -435,10 +457,67 @@ void ekfslam::publishTrack()
 	cone_msg.y = y_cones;
 	// Including a colour vector so its not empty, (but it is)
 	std::vector<std::string> cone_colour; 
-	cone_msg.colour = cone_colour;
-	// TODO: Add header 
-	
+	cone_msg.colour = cone_colour;	
 	track.publish(cone_msg);
+	// publish marker array
+
+	#ifdef PUBLISH_MARKERS 
+	int colour;
+	visualization_msgs::MarkerArray mk_arr; 
+	for (int i = 0; i <lm_num; i++){
+		visualization_msgs::Marker marker; 
+		marker.header.frame_id = "map";
+		marker.header.stamp = ros::Time();
+		marker.id = i;
+		marker.type = visualization_msgs::Marker::SPHERE;
+		marker.action = visualization_msgs::Marker::ADD;
+		
+		// estimate colour 
+		colour = UNKNOWN;
+
+		marker.pose.position.x = x(STATE_SIZE+ i*LM_SIZE,0);
+		marker.pose.position.y = x(1 + STATE_SIZE+ i*LM_SIZE,0);
+		marker.pose.position.z = 0.0;
+
+		marker.pose.orientation.x = 0;
+		marker.pose.orientation.y = 0;
+		marker.pose.orientation.z = 0;
+		marker.pose.orientation.w = 1;
+			
+		marker.scale.x = 0.25; 
+		marker.scale.y = 0.25; 
+		marker.scale.z = 0.25; 
+
+		if (colour == BLUE)
+		{
+		marker.color.b = blue.b; 
+		marker.color.g = blue.g; 
+		marker.color.r = blue.r;
+		}
+		else if (colour == ORANGE)
+		{
+		marker.color.b = orange.b; 
+		marker.color.g = orange.g; 
+		marker.color.r = orange.r;
+		}
+		else if (colour == YELLOW)
+		{
+		marker.color.b = yellow.b; 
+		marker.color.g = yellow.g; 
+		marker.color.r = yellow.r;
+		}
+		else
+		{
+		marker.color.b = white.b; 
+		marker.color.g = white.g; 
+		marker.color.r = white.r;
+		}
+		marker.color.a = 1; 
+		mk_arr.markers.push_back(marker); 
+	}
+	track_markers.publish(mk_arr);
+	#endif 
+	return;
 }
 void ekfslam::UpdateCovariance(){
 	Eigen::MatrixXf cv_tmp= Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);

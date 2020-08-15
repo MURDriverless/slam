@@ -14,13 +14,31 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include "geometry_msgs/Twist.h"
+#include "visualization_msgs/MarkerArray.h"
+#include "visualization_msgs/Marker.h"
+
 #define MAX_DISTANCE  0.3
 #define LM_SIZE 2
 
-const double PI  =3.141592653589793238463;
+#define BLUE 0
+#define YELLOW 1
+#define ORANGE 2
+#define UNKNOWN 3
+
+#define PUBLISH_MARKERS
+
+
+const double PI = 3.141592653589793238463;
 
 double pi2pi(double val);
 void printEigenMatrix(Eigen::MatrixXf mat);
+
+typedef struct
+{
+	float r; 
+	float g; 
+	float b; 
+} rgb_t;
 
 class ekfslam
 {
@@ -44,6 +62,7 @@ private:
 
 	ros::Publisher track;
 	ros::Publisher pose;
+	ros::Publisher track_markers;
 
 	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	int getCorrespondingLandmark(double x, double y);
@@ -78,6 +97,8 @@ private:
 	std::string FILTERED_TOPIC = "/slam/map";
 	std::string SLAM_POSE_TOPIC = "/slam/odom";
 	std::string CONTROL_TOPIC = "/cmd_vel";
+	std::string MARKER_ARRAY_TOPIC = "/map_markers";
+
 	// Arrays & vectors that define the EKF
 	Eigen::MatrixXf px;	 // predicted mean
 	Eigen::MatrixXf pcv; // predicted Covariance
@@ -102,11 +123,18 @@ private:
 
 	Eigen::MatrixXf z;
 
+	Eigen::MatrixXf colur_odds;
+
 	int lm_num; // keeps track of the number of landmarks
 	std::vector<std::vector<discreteBayes>> coneExistence;
 
 	// std::vector<std::vector <Point<float>> > test;
 
 	static const int QUE_SIZE = 1;
+	// RGB colours
+	rgb_t orange; 
+	rgb_t blue; 
+	rgb_t yellow;
+	rgb_t white; 
 };
 #endif
