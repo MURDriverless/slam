@@ -20,10 +20,24 @@
 #define MAX_DISTANCE  0.3
 #define LM_SIZE 2
 
+#define BLUE 1
+#define YELLOW 2
+#define ORANGE 3
+#define UNKNOWN 0
+
+#define PUBLISH_MARKERS
+
 const double PI = 3.141592653589793238463;
 
 double pi2pi(double val);
 void printEigenMatrix(Eigen::MatrixXf mat);
+
+typedef struct
+{
+	float r; 
+	float g; 
+	float b; 
+} rgb_t;
 
 class ekfslam
 {
@@ -114,5 +128,10 @@ private:
 	// std::vector<std::vector <Point<float>> > test;
 
 	static const int QUE_SIZE = 1;
+	// RGB colours
+	rgb_t orange; 
+	rgb_t blue; 
+	rgb_t yellow;
+	rgb_t white; 
 };
 #endif
