@@ -350,6 +350,7 @@ void ekfslam::runnableTrigger(int reading_type)
 	}
 	x = px; 
 	cv = pcv;
+	ROS_INFO("Map Published: %ld", ros::Time::now().toNSec());
 	// printf("X"); 
 	// printEigenMatrix(x);
 	// printf("CV"); 
@@ -557,6 +558,7 @@ void ekfslam::computeJacobian(){
 
 void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
+	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
 	int length_x = data.x.size();
 	int length_y = data.y.size(); 
 
@@ -579,6 +581,7 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 
 void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 {
+	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
 	int length_x = data.x.size();
 	int length_y = data.y.size();
 
@@ -613,7 +616,6 @@ void ekfslam::publishPose()
 	pose_pub.pose.pose.orientation = tf::createQuaternionMsgFromYaw(px(2,0));
 	pose.publish(pose_pub); 
 }
-
 void ekfslam::publishTrack()
 {
 	mur_common::cone_msg cone_msg;

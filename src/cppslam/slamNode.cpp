@@ -19,6 +19,7 @@ Currently only has ekf slam.
 	ekfslam slam(n,STATE_SIZE);
 
 	ROS_INFO_STREAM("EKF SLAM: LAUNCHED");
+
 	ros::spin();
 	
 	// slam.runnable();
