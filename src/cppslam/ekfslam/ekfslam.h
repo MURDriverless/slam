@@ -57,6 +57,7 @@ class ekfslam
 
 public:
 	ekfslam(ros::NodeHandle n, int state_size, int hz);
+	ekfslam(ros::NodeHandle n, int state_size);
 	void runnableStableRate();
 	void runnableTrigger(int reading_type);
 
@@ -103,7 +104,7 @@ private:
 	int HZ;
 	double time;
 	//static message topic names
-	
+
 	#ifdef SIMULATED_MODE
 		std::string CONE_MSG = "/cone_msg";
 		std::string ODOM_TOPIC = "/odom";

@@ -71,7 +71,11 @@ void ekfslam::associateMeasurements(){
 
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
+	TRIGGER_MODE = false;
 	ROS_INFO_STREAM("Extended Kalman filter created");
+
+	ROS_INFO_STREAM("Stable Rate mode");
+
 	discreteBayes coneColourFilter();
 	nh = n;
 	int status = 1;
@@ -136,6 +140,74 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	return;
 }
 
+ekfslam::ekfslam(ros::NodeHandle n, int state_size)
+{
+	TRIGGER_MODE = true;
+	ROS_INFO_STREAM("Extended Kalman filter created");
+	
+	ROS_INFO_STREAM("Trigger Mode");
+	
+	discreteBayes coneColourFilter();
+	nh = n;
+	int status = 1;
+	time = ros::Time::now().toSec();
+	lm_num = 0;
+	
+	STATE_SIZE = state_size;
+	
+	// defining the state shape at initialization
+	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
+	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
+	S = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE); // innovation covariance
+
+	x = Eigen::MatrixXf::Zero(STATE_SIZE,1); // state
+	cv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE); //state covariance 
+	u = Eigen::MatrixXf::Zero(1,2); // Control
+	Q = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
+	orange.r = 1;
+	orange.g = 0.5; 
+	orange.b = 0;
+
+	blue.r = 0;
+	blue.g = 0.0; 
+	blue.b = 1;
+	
+	yellow.r = 1.0;
+	yellow.g = 0.9; 
+	yellow.b = 0;
+
+	white.r = 1.0; 
+	white.b = 1.0; 
+	white.g = 1.0;
+	// starting position!
+	x(0,0) = -52.0;
+	x(1,0) = 0;
+	x(2,0) = 0;
+	while (ros::ok())
+	{
+		try
+		{
+			// Launching Subscribers and Publishers
+
+			status *= launchSubscribers();
+			status *= launchPublishers(); 
+
+			if (!status)
+			{
+				throw "FAILED TO SUBSCRIBE TO SENSORS";
+			}
+			return; // returns if subscribers succesfully initialised
+		}
+
+		catch (const char *msg)
+		{
+			ROS_ERROR_STREAM(msg);
+		}
+	}
+	ROS_INFO("Launching...");
+	ros::Duration(2).sleep(); 
+	return;
+}
 
 void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
 	
@@ -145,7 +217,8 @@ void ekfslam::runnableTrigger(int reading_type)
 {
 	int newMeasurements, idx, new_size, rows, colour;
 	double xlm, ylm, xr, yr, theta_p;
-
+	dt = ros::Time::now().toSec() - time; 
+	time = ros::Time::now().toSec();
 	// predict Step
 	ekfslam::motionModel(); // predicts px
 	ekfslam::computeJacobian(); // Computes Jacobian "F"
@@ -498,6 +571,9 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 		z(1,i) = data.y[i];
 		z(2,i) = 0;
 	}
+	if (TRIGGER_MODE){
+		runnableTrigger(0);
+	}
 	return;
 }
 
@@ -520,6 +596,9 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 		lidar_colors.push_back(data.colour[i]);
 		z(2,i) = 0;
 		// ROS_INFO("[ %f, %f, %f]",data.x[i],data.y[i],0.0 );
+	}
+	if (TRIGGER_MODE){
+		runnableTrigger(0);
 	}
 	return;
 }
@@ -655,7 +734,6 @@ void ekfslam::UpdateCovariance(){
 	}
 	return;
 }
-
 void ekfslam::controlclb(const geometry_msgs::Twist &data)
 {
 	u(0,0) = data.linear.x;

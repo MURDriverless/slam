@@ -16,10 +16,11 @@ Currently only has ekf slam.
 
 	ros::NodeHandle n;
 
-	ekfslam slam(n,STATE_SIZE, HZ);
+	ekfslam slam(n,STATE_SIZE);
 
 	ROS_INFO_STREAM("EKF SLAM: LAUNCHED");
-
-	slam.runnable();
+	ros::spin();
+	
+	// slam.runnable();
 	return 0;
 }
