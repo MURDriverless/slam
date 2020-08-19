@@ -350,7 +350,7 @@ void ekfslam::runnableTrigger(int reading_type)
 	}
 	x = px; 
 	cv = pcv;
-	ROS_INFO("Map Published: %ld", ros::Time::now().toNSec());
+	// ROS_INFO("Map Published: %ld", ros::Time::now().toNSec());
 	// printf("X"); 
 	// printEigenMatrix(x);
 	// printf("CV"); 
@@ -740,6 +740,9 @@ void ekfslam::controlclb(const geometry_msgs::Twist &data)
 {
 	u(0,0) = data.linear.x;
 	u(0,1) = data.angular.z;
+	// dt = ros::Time::now().toSec()-time;
+	// time = ros::Time::now().toSec();
+	// motionModel();
 	return;
 }
 double pi2pi(double val){
