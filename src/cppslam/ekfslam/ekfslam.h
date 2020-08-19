@@ -116,7 +116,6 @@ private:
 	#endif
 
 	#ifdef REAL_MODE
-		std::string CONE_MSG = "/cone_msg";
 		std::string ODOM_TOPIC = "/mur/odom";
 		std::string CAM_TOPIC = "/mur/cones/stereo";
 		std::string LIDAR_TOPIC = "/mur/cones/lidar";
