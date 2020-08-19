@@ -131,17 +131,12 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	return;
 }
 
-void ekfslam::ProcessPoseMeasurements(){
-	for (int i = 0; i <STATE_SIZE; i++){
-		z(1,i) = 0.0; // not sure how to handle this curently
-	}
-}
-
 
 void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
 	
 	return;
 }
+
 void ekfslam::runnable()
 /* 
 	Here is the main loop for the EKF SLAM method  
@@ -151,6 +146,7 @@ void ekfslam::runnable()
 	double xlm, ylm, xr, yr, theta_p; 
 	ros::Rate looprate(HZ);
 	
+	// starting position!
 	x(0,0) = -52.0;
 	x(1,0) = 0;
 	x(2,0) = 0;

@@ -64,6 +64,7 @@ private:
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
 	void odomclb(const geometry_msgs::Pose2D &data);
 	void controlclb(const geometry_msgs::Twist &data);
+	
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	ros::Subscriber odomSub;
@@ -73,17 +74,14 @@ private:
 	ros::Publisher pose;
 	ros::Publisher track_markers;
 
-	int stateSizeCalc(Eigen::MatrixXd z, Eigen::MatrixXd x);
 	int getCorrespondingLandmark(double x, double y);
-
+	void UpdateCovariance();
 	void motionModel();
 	void computeJacobian();
 	void associateMeasurements();
-	void processMeasurements();
-	void ProcessPoseMeasurements();
+
 	void Jacob_H(double q, Eigen::MatrixXf delta, int idx);
-	void calcInnovation( int idx, Point<double> lm);
-	void UpdateCovariance();
+
 	void publishPose();
 	void publishTrack();
 
