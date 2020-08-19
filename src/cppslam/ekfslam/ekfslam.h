@@ -106,7 +106,6 @@ private:
 	//static message topic names
 
 	#ifdef SIMULATED_MODE
-		std::string CONE_MSG = "/cone_msg";
 		std::string ODOM_TOPIC = "/odom";
 		std::string CAM_TOPIC = "/camera/cones";
 		std::string LIDAR_TOPIC = "/cone_messages";
@@ -118,12 +117,12 @@ private:
 
 	#ifdef REAL_MODE
 		std::string CONE_MSG = "/cone_msg";
-		std::string ODOM_TOPIC = "/odom";
-		std::string CAM_TOPIC = "/camera/cones";
-		std::string LIDAR_TOPIC = "/cone_messages";
+		std::string ODOM_TOPIC = "/mur/odom";
+		std::string CAM_TOPIC = "/mur/cones/stereo";
+		std::string LIDAR_TOPIC = "/mur/cones/lidar";
 		std::string FILTERED_TOPIC = "/slam/map";
 		std::string SLAM_POSE_TOPIC = "/slam/odom";
-		std::string CONTROL_TOPIC = "/cmd_vel";
+		std::string CONTROL_TOPIC = "/mur/control_desired";
 		std::string MARKER_ARRAY_TOPIC = "/map_markers";
 	#endif
 	// Arrays & vectors that define the EKF
