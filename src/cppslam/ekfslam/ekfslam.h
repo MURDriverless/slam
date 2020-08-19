@@ -18,6 +18,9 @@
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
 
+
+#define SIMULATED_MODE
+
 #define MAX_DISTANCE  0.3
 #define LM_SIZE 2
 
@@ -54,7 +57,8 @@ class ekfslam
 
 public:
 	ekfslam(ros::NodeHandle n, int state_size, int hz);
-	void runnable();
+	void runnableStableRate();
+	void runnableTrigger(int reading_type);
 
 private:
 	int launchSubscribers();
@@ -92,20 +96,35 @@ private:
 	int STATE_SIZE;
 	int controlSize;
 
+	bool TRIGGER_MODE;
+
 	ros::NodeHandle nh;
 	double dt;
 	int HZ;
-
+	double time;
 	//static message topic names
-	std::string CONE_MSG = "/cone_msg";
-	std::string ODOM_TOPIC = "/odom";
-	std::string CAM_TOPIC = "/camera/cones";
-	std::string LIDAR_TOPIC = "/cone_messages";
-	std::string FILTERED_TOPIC = "/slam/map";
-	std::string SLAM_POSE_TOPIC = "/slam/odom";
-	std::string CONTROL_TOPIC = "/cmd_vel";
-	std::string MARKER_ARRAY_TOPIC = "/map_markers";
+	
+	#ifdef SIMULATED_MODE
+		std::string CONE_MSG = "/cone_msg";
+		std::string ODOM_TOPIC = "/odom";
+		std::string CAM_TOPIC = "/camera/cones";
+		std::string LIDAR_TOPIC = "/cone_messages";
+		std::string FILTERED_TOPIC = "/slam/map";
+		std::string SLAM_POSE_TOPIC = "/slam/odom";
+		std::string CONTROL_TOPIC = "/cmd_vel";
+		std::string MARKER_ARRAY_TOPIC = "/map_markers";
+	#endif
 
+	#ifdef REAL_MODE
+		std::string CONE_MSG = "/cone_msg";
+		std::string ODOM_TOPIC = "/odom";
+		std::string CAM_TOPIC = "/camera/cones";
+		std::string LIDAR_TOPIC = "/cone_messages";
+		std::string FILTERED_TOPIC = "/slam/map";
+		std::string SLAM_POSE_TOPIC = "/slam/odom";
+		std::string CONTROL_TOPIC = "/cmd_vel";
+		std::string MARKER_ARRAY_TOPIC = "/map_markers";
+	#endif
 	// Arrays & vectors that define the EKF
 	Eigen::MatrixXf px;	 // predicted mean
 	Eigen::MatrixXf pcv; // predicted Covariance
