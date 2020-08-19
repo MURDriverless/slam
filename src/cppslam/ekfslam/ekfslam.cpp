@@ -2,6 +2,12 @@
 #define EKF_CPP
 #include "ekfslam.h"
 
+/* State Definitions
+ * x = {x,y,theta,velocity}^T
+ * u = {velocity, angular velocity}
+ * lm = [lm1, lm2 lm3 ...]
+ * */
+
 int ekfslam::launchSubscribers(){
 	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
@@ -29,35 +35,6 @@ int ekfslam::launchPublishers(){
 	}
 	return 1; 
 }
-void ekfslam::processMeasurements(){
-	// /* This function processes the measurements and associates them into a 
-	// 	h mapping
-	//  */
-	//  double x_val,y_val;
-	//  int length = z_lid.rows();
-
-	//  std::vector<int> h_assoc_lidar;
-	//  int idx;
-	//  for (int i = 0; i<length; i++)
-	//  {
-	// 	 x_val = z_lid(0,i);
-	// 	 y_val = z_lid(1,i);
-	// 	 idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
-	// 	 if (idx >= lm_num){
-	// 		 // New landmark discovered
-	// 		ROS_INFO_STREAM("New landmark detected");
-	// 		lm_num++;
-	// 		//TODO: Look into ways to do this in place.
-	// 		Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
-	// 		x = x_tmp;
-	// 		Eigen::Map<Eigen::MatrixXf> cv_tmp(cv.data(),cv.size() + 2,cv.size() + 2);
-	// 		cv = cv_tmp;
-	// 	 }
-	// }
-	// associateMeasurements(h_assoc_lidar);
-
-	return; 
-}
 int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 	/* 
 		Obtains the landmark associated with a measurement
@@ -82,23 +59,27 @@ int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 
 void ekfslam::associateMeasurements(){
 	/* Construct a measurement vector */
-	int length = z_lid.rows();
+	int length = z.rows();
 	z = Eigen::MatrixXf::Zero(1,LM_SIZE * length + STATE_SIZE);
 	
 	for (int i = 0; i<length;i++){
-		z(0,STATE_SIZE + LM_SIZE * i) = z_lid(i,0);
-		z(0,STATE_SIZE + LM_SIZE * i + 1) = z_lid(i,1);
+		z(0,STATE_SIZE + LM_SIZE * i) = z(i,0);
+		z(0,STATE_SIZE + LM_SIZE * i + 1) = z(i,1);
 	}
 	return;
 }
 
 ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
+	TRIGGER_MODE = false;
 	ROS_INFO_STREAM("Extended Kalman filter created");
+
+	ROS_INFO_STREAM("Stable Rate mode");
+
 	discreteBayes coneColourFilter();
 	nh = n;
 	int status = 1;
-	
+	time = ros::Time::now().toSec();
 	lm_num = 0;
 	
 	STATE_SIZE = state_size;
@@ -129,6 +110,10 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	white.r = 1.0; 
 	white.b = 1.0; 
 	white.g = 1.0;
+	// starting position!
+	x(0,0) = -52.0;
+	x(1,0) = 0;
+	x(2,0) = 0;
 	while (ros::ok())
 	{
 		try
@@ -150,26 +135,232 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 			ROS_ERROR_STREAM(msg);
 		}
 	}
-
+	ROS_INFO("Launching...");
+	ros::Duration(2).sleep(); 
 	return;
 }
 
-void ekfslam::ProcessPoseMeasurements(){
-	for (int i = 0; i <STATE_SIZE; i++){
-		z(1,i) = 0.0; // not sure how to handle this curently
+ekfslam::ekfslam(ros::NodeHandle n, int state_size)
+{
+	TRIGGER_MODE = true;
+	ROS_INFO_STREAM("Extended Kalman filter created");
+	
+	ROS_INFO_STREAM("Trigger Mode");
+	
+	discreteBayes coneColourFilter();
+	nh = n;
+	int status = 1;
+	time = ros::Time::now().toSec();
+	lm_num = 0;
+	
+	STATE_SIZE = state_size;
+	
+	// defining the state shape at initialization
+	px = Eigen::MatrixXf::Zero(STATE_SIZE,1); // predicted mean
+	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
+	S = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE); // innovation covariance
+
+	x = Eigen::MatrixXf::Zero(STATE_SIZE,1); // state
+	cv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE); //state covariance 
+	u = Eigen::MatrixXf::Zero(1,2); // Control
+	Q = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
+	orange.r = 1;
+	orange.g = 0.5; 
+	orange.b = 0;
+
+	blue.r = 0;
+	blue.g = 0.0; 
+	blue.b = 1;
+	
+	yellow.r = 1.0;
+	yellow.g = 0.9; 
+	yellow.b = 0;
+
+	white.r = 1.0; 
+	white.b = 1.0; 
+	white.g = 1.0;
+	// starting position!
+	x(0,0) = -52.0;
+	x(1,0) = 0;
+	x(2,0) = 0;
+	while (ros::ok())
+	{
+		try
+		{
+			// Launching Subscribers and Publishers
+
+			status *= launchSubscribers();
+			status *= launchPublishers(); 
+
+			if (!status)
+			{
+				throw "FAILED TO SUBSCRIBE TO SENSORS";
+			}
+			return; // returns if subscribers succesfully initialised
+		}
+
+		catch (const char *msg)
+		{
+			ROS_ERROR_STREAM(msg);
+		}
 	}
+	ROS_INFO("Launching...");
+	ros::Duration(2).sleep(); 
+	return;
 }
 
-/* State Definitions
- * x = {x,y,theta,velocity}^T
- * u = {velocity, angular velocity}
- * lm = [lm1, lm2 lm3 ...]
- * */
 void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
 	
 	return;
 }
-void ekfslam::runnable()
+void ekfslam::runnableTrigger(int reading_type)
+{
+	int newMeasurements, idx, new_size, rows, colour;
+	double xlm, ylm, xr, yr, theta_p;
+	dt = ros::Time::now().toSec() - time; 
+	time = ros::Time::now().toSec();
+	// predict Step
+	ekfslam::motionModel(); // predicts px
+	ekfslam::computeJacobian(); // Computes Jacobian "F"
+
+	Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+	
+	ekfslam::UpdateCovariance();
+	// pcv = F * cv * F.transpose() + F_x * Q * F_x.transpose(); // predicts Covariance
+	// printf("Predict cv");
+	// printEigenMatrix(pcv);
+	// Sensor Processing (only lidar for now)
+	newMeasurements = z.cols();
+	// printf("Lidar");
+	// printEigenMatrix(z);
+
+	// ROS_INFO("Measurements: %d ",newMeasurements);
+	for (int i = 0; i<newMeasurements; i++){
+		// ROS_INFO("New measurement");
+		// do data association
+		xr = z(0,i); 
+		yr = z(1,i); 
+		theta_p = px(2,0);
+		xlm = px(0,0) + xr * cos(theta_p) - yr * sin(theta_p);
+		ylm = px(1,0) + xr * sin(theta_p) + yr * cos(theta_p);
+		// ROS_INFO("XLM: %lf", xlm);
+		// ROS_INFO("YLM: %lf", ylm);
+		
+		idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
+		if( std::string(lidar_colors[i]).compare(BLUE_STR)){
+			colour = BLUE;
+		}
+		else if( std::string(lidar_colors[i]).compare(ORANGE_STR)){
+			colour = ORANGE;
+		}
+		else if( std::string(lidar_colors[i]).compare(YELLOW_STR)){
+			colour = YELLOW;
+		}
+		else if( std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+			colour = UNKNOWN;
+		}
+		coneColourFilter.update_measurement(idx,colour);
+		// ROS_INFO("Index: %d",idx);
+
+		if (idx >= lm_num){
+				// New landmark discovered
+				// ROS_INFO_STREAM("New landmark detected");
+				lm_num++;
+				// resize state arrays
+				new_size = px.rows() + LM_SIZE; 
+				rows = px.rows();
+				// ROS_INFO("New size: %d", new_size);
+				x.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,1));
+				px.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,1));
+				px(rows,0) = xlm;
+				px(rows+1,0) = ylm;
+
+				cv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
+				pcv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
+				pcv(new_size-1,new_size-1) = 0.5;
+				pcv(new_size-2,new_size-2) = 0.5;
+				
+				
+				// ROS_INFO("Resizing complete");
+		}
+		y = Eigen::MatrixXf::Zero(2,1);
+		y(0,0) = xlm - (px(STATE_SIZE + idx * LM_SIZE, 0)); 
+		y(1,0) = ylm - (px(STATE_SIZE + idx * LM_SIZE + 1,0));
+
+		// printf("y");
+		// printEigenMatrix(y);	
+		// Compute sensor Jacobian and F matrix 
+		Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
+		Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(LM_SIZE,STATE_SIZE+LM_SIZE);
+		F_j(0,0) = 1; 
+		F_j(1,1) = 1; 
+		F_j(2,2) = 1; 
+		F_j(3,3) = 1; 
+		F_j(4,4) = 1;
+		F_j(5,(idx)*LM_SIZE + STATE_SIZE) = 1;
+		F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
+
+		H_j(0,0) = 1;
+		H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
+
+		H_j(0,STATE_SIZE) = cos(theta_p);
+		H_j(0,STATE_SIZE+1) = sin(theta_p);
+
+		H_j(0,STATE_SIZE) = cos(theta_p);
+		H_j(0,STATE_SIZE+1) = -sin(theta_p);
+			
+		H_j(1,1) = 1;
+		H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
+		H_j(1,STATE_SIZE) = sin(theta_p);
+		H_j(1,STATE_SIZE+1) = cos(theta_p);
+		H_j = H_j * - 1;
+		H = Eigen::MatrixXf::Zero(2,7);
+		H = H_j * F_j;
+		// printf("F_j");
+		// printEigenMatrix(F_j);
+		// printf("H_j");
+
+		// printEigenMatrix(H_j);
+		// printf("H");
+
+		// printEigenMatrix(H);
+		// printf("Pcv");
+		// printEigenMatrix(pcv);
+
+		K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
+		Eigen::MatrixXf k_tmp; 
+		Eigen::MatrixXf Q_small; 
+		Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*10.0;
+		k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
+		// printf("K_temp");
+		// printEigenMatrix(k_tmp);
+		K = pcv * H.transpose() * k_tmp;
+		// printf("K");
+		// printEigenMatrix(K);
+
+
+		px = px +  K*y;
+		// printf("px");
+		// printEigenMatrix(px);
+
+		Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
+		pcv = (I - K * H) * pcv;  
+		// printf("Pcv");
+		// printEigenMatrix(pcv);
+	}
+	x = px; 
+	cv = pcv;
+	ROS_INFO("Map Published: %ld", ros::Time::now().toNSec());
+	// printf("X"); 
+	// printEigenMatrix(x);
+	// printf("CV"); 
+	// printEigenMatrix(cv);
+	
+
+	publishTrack();
+	publishPose(); 
+}
+void ekfslam::runnableStableRate()
 /* 
 	Here is the main loop for the EKF SLAM method  
 */
@@ -178,9 +369,6 @@ void ekfslam::runnable()
 	double xlm, ylm, xr, yr, theta_p; 
 	ros::Rate looprate(HZ);
 	
-	x(0,0) = -52.0;
-	x(1,0) = 0;
-	x(2,0) = 0;
 	
 	while (ros::ok())
 	{
@@ -195,17 +383,16 @@ void ekfslam::runnable()
 		// printf("Predict cv");
 		// printEigenMatrix(pcv);
 		// Sensor Processing (only lidar for now)
-		newMeasurements = z_lid.cols();
+		newMeasurements = z.cols();
 		// printf("Lidar");
-		// printEigenMatrix(z_lid);
+		// printEigenMatrix(z);
 
 		// ROS_INFO("Measurements: %d ",newMeasurements);
-		// associateMeasurements(); 
 		for (int i = 0; i<newMeasurements; i++){
 			// ROS_INFO("New measurement");
 			// do data association
-			xr = z_lid(0,i); 
-			yr = z_lid(1,i); 
+			xr = z(0,i); 
+			yr = z(1,i); 
 			theta_p = px(2,0);
 			xlm = px(0,0) + xr * cos(theta_p) - yr * sin(theta_p);
 			ylm = px(1,0) + xr * sin(theta_p) + yr * cos(theta_p);
@@ -330,39 +517,9 @@ void ekfslam::runnable()
 		looprate.sleep(); //enforce rate
 	}
 }
-Point<double> ekfslam::getAbsolutePose(Point<double> p){
-	Point<double> correctedLM(p.x,p.y,p.z);
-	correctedLM.x += x(0,0);
-	correctedLM.y += y(0,0);
-	return correctedLM; 
 
-}
-void ekfslam::calcInnovation(int idx, Point<double> lm){
-	Eigen::MatrixXf xpos(1,2);
-	Eigen::MatrixXf zpos(1,2);
-	Eigen::MatrixXf y(1,2);
-	Eigen::MatrixXf delta(1,2); 
-
-	double x_pos  = x(0,0);
-	double y_pos = x(0,1);
-	double q = x_pos*x_pos + y_pos*y_pos;
-	// zpos(0,0) = z(0,STATE_SIZE + LM_SIZE*idx);
-	// zpos(0,1) = z(0,1+ STATE_SIZE + LM_SIZE*idx);
-	zpos(0,0) = lm.x;
-	zpos(0,1) = lm.y;
-	
-	delta(0,0) = lm.x - x(0,0);
-	delta(0,1) = lm.y - x(0,1);
-	
-	y = xpos - zpos;
-	ekfslam::Jacob_H(q,delta,idx);
-	
-	return;
-
-}
 void ekfslam::Jacob_H(double q, Eigen::MatrixXf delta, int idx){
 	H = Eigen::MatrixXf::Identity(5,5);
-
 	return;
 }
 void  ekfslam::motionModel()
@@ -401,42 +558,50 @@ void ekfslam::computeJacobian(){
 
 void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
+	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
 	int length_x = data.x.size();
 	int length_y = data.y.size(); 
 
 	// test here for length equality, otherwise bugs will occur. 
 	if (length_x == 0) return;
 	assert (length_x == length_y);
-	z_cam = Eigen::MatrixXf::Zero(3,length_x);
+	z = Eigen::MatrixXf::Zero(3,length_x);
 
 	for (int i = 0; i <length_x; i++){
-		z_cam(0,i) = data.x[i];
+		z(0,i) = data.x[i];
 		// ROS_INFO("[ %f, %f, %f]",data.x[i],data.y[i],0.0 );
-		z_cam(1,i) = data.y[i];
-		z_cam(2,i) = 0;
+		z(1,i) = data.y[i];
+		z(2,i) = 0;
+	}
+	if (TRIGGER_MODE){
+		runnableTrigger(0);
 	}
 	return;
 }
 
 void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 {
+	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
 	int length_x = data.x.size();
 	int length_y = data.y.size();
 
 	// test here for length equality, otherwise bugs will occur. 
 	if (length_x == 0 || length_y == 0){
-		z_lid = Eigen::MatrixXf::Zero(0,0);
+		z = Eigen::MatrixXf::Zero(0,0);
 		return;
 	};
 	assert (length_x == length_y);
 	lidar_colors.clear();
-	z_lid = Eigen::MatrixXf::Zero(3,length_x);
+	z = Eigen::MatrixXf::Zero(3,length_x);
 	for (int i = 0; i <length_x; i++){
-		z_lid(0,i) = data.x[i];
-		z_lid(1,i) = data.y[i];
+		z(0,i) = data.x[i];
+		z(1,i) = data.y[i];
 		lidar_colors.push_back(data.colour[i]);
-		z_lid(2,i) = 0;
+		z(2,i) = 0;
 		// ROS_INFO("[ %f, %f, %f]",data.x[i],data.y[i],0.0 );
+	}
+	if (TRIGGER_MODE){
+		runnableTrigger(0);
 	}
 	return;
 }
@@ -451,7 +616,6 @@ void ekfslam::publishPose()
 	pose_pub.pose.pose.orientation = tf::createQuaternionMsgFromYaw(px(2,0));
 	pose.publish(pose_pub); 
 }
-
 void ekfslam::publishTrack()
 {
 	mur_common::cone_msg cone_msg;
@@ -572,7 +736,6 @@ void ekfslam::UpdateCovariance(){
 	}
 	return;
 }
-
 void ekfslam::controlclb(const geometry_msgs::Twist &data)
 {
 	u(0,0) = data.linear.x;
