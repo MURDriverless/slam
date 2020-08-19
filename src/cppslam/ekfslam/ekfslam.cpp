@@ -2,6 +2,12 @@
 #define EKF_CPP
 #include "ekfslam.h"
 
+/* State Definitions
+ * x = {x,y,theta,velocity}^T
+ * u = {velocity, angular velocity}
+ * lm = [lm1, lm2 lm3 ...]
+ * */
+
 int ekfslam::launchSubscribers(){
 	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
@@ -28,35 +34,6 @@ int ekfslam::launchPublishers(){
 		return 0; //failure
 	}
 	return 1; 
-}
-void ekfslam::processMeasurements(){
-	// /* This function processes the measurements and associates them into a 
-	// 	h mapping
-	//  */
-	//  double x_val,y_val;
-	//  int length = z_lid.rows();
-
-	//  std::vector<int> h_assoc_lidar;
-	//  int idx;
-	//  for (int i = 0; i<length; i++)
-	//  {
-	// 	 x_val = z_lid(0,i);
-	// 	 y_val = z_lid(1,i);
-	// 	 idx = ekfslam::getCorrespondingLandmark(x_val,y_val);
-	// 	 if (idx >= lm_num){
-	// 		 // New landmark discovered
-	// 		ROS_INFO_STREAM("New landmark detected");
-	// 		lm_num++;
-	// 		//TODO: Look into ways to do this in place.
-	// 		Eigen::Map<Eigen::MatrixXf> x_tmp(x.data(),1,2+x.size());
-	// 		x = x_tmp;
-	// 		Eigen::Map<Eigen::MatrixXf> cv_tmp(cv.data(),cv.size() + 2,cv.size() + 2);
-	// 		cv = cv_tmp;
-	// 	 }
-	// }
-	// associateMeasurements(h_assoc_lidar);
-
-	return; 
 }
 int ekfslam::getCorrespondingLandmark(double x_val, double y_val){
 	/* 
@@ -160,11 +137,7 @@ void ekfslam::ProcessPoseMeasurements(){
 	}
 }
 
-/* State Definitions
- * x = {x,y,theta,velocity}^T
- * u = {velocity, angular velocity}
- * lm = [lm1, lm2 lm3 ...]
- * */
+
 void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
 	
 	return;
@@ -200,7 +173,6 @@ void ekfslam::runnable()
 		// printEigenMatrix(z_lid);
 
 		// ROS_INFO("Measurements: %d ",newMeasurements);
-		// associateMeasurements(); 
 		for (int i = 0; i<newMeasurements; i++){
 			// ROS_INFO("New measurement");
 			// do data association
@@ -330,39 +302,9 @@ void ekfslam::runnable()
 		looprate.sleep(); //enforce rate
 	}
 }
-Point<double> ekfslam::getAbsolutePose(Point<double> p){
-	Point<double> correctedLM(p.x,p.y,p.z);
-	correctedLM.x += x(0,0);
-	correctedLM.y += y(0,0);
-	return correctedLM; 
 
-}
-void ekfslam::calcInnovation(int idx, Point<double> lm){
-	Eigen::MatrixXf xpos(1,2);
-	Eigen::MatrixXf zpos(1,2);
-	Eigen::MatrixXf y(1,2);
-	Eigen::MatrixXf delta(1,2); 
-
-	double x_pos  = x(0,0);
-	double y_pos = x(0,1);
-	double q = x_pos*x_pos + y_pos*y_pos;
-	// zpos(0,0) = z(0,STATE_SIZE + LM_SIZE*idx);
-	// zpos(0,1) = z(0,1+ STATE_SIZE + LM_SIZE*idx);
-	zpos(0,0) = lm.x;
-	zpos(0,1) = lm.y;
-	
-	delta(0,0) = lm.x - x(0,0);
-	delta(0,1) = lm.y - x(0,1);
-	
-	y = xpos - zpos;
-	ekfslam::Jacob_H(q,delta,idx);
-	
-	return;
-
-}
 void ekfslam::Jacob_H(double q, Eigen::MatrixXf delta, int idx){
 	H = Eigen::MatrixXf::Identity(5,5);
-
 	return;
 }
 void  ekfslam::motionModel()

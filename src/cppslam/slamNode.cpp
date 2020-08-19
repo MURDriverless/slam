@@ -21,6 +21,5 @@ Currently only has ekf slam.
 	ROS_INFO_STREAM("EKF SLAM: LAUNCHED");
 
 	slam.runnable();
-
 	return 0;
 }
