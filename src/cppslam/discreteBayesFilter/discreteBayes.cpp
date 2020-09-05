@@ -7,11 +7,12 @@ void discreteBayes::update_measurement(int index, int measurement)
 {
     // check if index is a new cone)
     int length = state.size();
-
+    // printf("Index: %d\n", index);
+    
     if ((index+1) > length){
         // new landmark do conservative resizing
         state.conservativeResizeLike(Eigen::MatrixXf::Zero(index+1,1));
-        estimates.conservativeResizeLike(Eigen::MatrixXf::Zero(index+1,3));
+        estimates.conservativeResizeLike(Eigen::MatrixXf::Zero(index+1,CONE_VARIETIES));
         state(index,0) = UNKNOWN;
         estimates(index,BLUE) =  BLUE_PROB;
         estimates(index,YELLOW) =  YELLOW_PROB;
@@ -20,6 +21,7 @@ void discreteBayes::update_measurement(int index, int measurement)
     if (measurement == UNKNOWN) return;
     for (int j = 0; j<CONE_VARIETIES; j++){
         if (measurement==j){
+            // printf("Updating estimates at index (%d, %d)\n", index, j);
             estimates(index,j) +=  L_PROB_READING_T ;
         }
         else{
@@ -33,7 +35,7 @@ void discreteBayes::update_state()
     int length = state.size();
     double val; 
     for (int i = 0; i < length; i++){
-        int min_indx = 3; 
+        int min_indx = CONE_VARIETIES; 
         double min_val = LARGE_NEGATIVE_NUMBER; 
         for(int j = 0; j<CONE_VARIETIES; j++){
             val = estimates(i,j)+ colour_prob[j];
@@ -44,7 +46,9 @@ void discreteBayes::update_state()
         }
         state(i,0) = min_indx;
     }
-    renormalize_est();
+    // ROS_INFO_STREAM("ESTIMATES");
+    // printEigenMatrix(estimates);
+    // renormalize_est();
     return;
 }
 void discreteBayes::renormalize_est(){

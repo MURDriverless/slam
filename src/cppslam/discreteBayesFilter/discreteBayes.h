@@ -11,11 +11,11 @@
     Ref: Probabilistic Robotics Pg 86/94: Thrun Et al 
 */
 
-#define CONE_VARIETIES 3
+#define CONE_VARIETIES 4
 #define LARGE_NEGATIVE_NUMBER -100000000000000
 #define BLUE_PROB log(0.5)
 #define YELLOW_PROB log(0.45)
-#define ORANGE_PROB log(0.05)
+#define ORANGE_PROB log(0.025)
 
 #define PROB_READING_T 0.99
 #define PROB_READING_F 1 - PROB_READING_T
@@ -28,7 +28,8 @@
 #define BLUE 0
 #define YELLOW 1
 #define ORANGE 2
-#define UNKNOWN 3
+#define BIG 3 
+#define UNKNOWN 4
 
 void printEigenMatrix(Eigen::MatrixXf mat);
 
@@ -41,6 +42,8 @@ class discreteBayes{
            estimates(0,BLUE) =  BLUE_PROB;
            estimates(0,YELLOW) =  YELLOW_PROB;
            estimates(0,ORANGE) =  ORANGE_PROB;
+           estimates(0,BIG) =  ORANGE_PROB;
+           
 
            state = Eigen::MatrixXf::Zero(1,1);
            state(0,0) = UNKNOWN; // initial state is unknown
@@ -52,6 +55,6 @@ class discreteBayes{
         void renormalize_est();
         void update_state();
 
-        double colour_prob[3] = {BLUE_PROB,YELLOW_PROB, ORANGE_PROB};
+        double colour_prob[4] = {BLUE_PROB,YELLOW_PROB, ORANGE_PROB,ORANGE_PROB };
 };
 #endif

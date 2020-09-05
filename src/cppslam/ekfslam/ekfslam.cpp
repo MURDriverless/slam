@@ -245,18 +245,29 @@ void ekfslam::runnableTrigger(int reading_type)
 		ylm = px(1,0) + xr * sin(theta_p) + yr * cos(theta_p);
 		// ROS_INFO("XLM: %lf", xlm);
 		// ROS_INFO("YLM: %lf", ylm);
-		
 		idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
-		if( std::string(lidar_colors[i]).compare(BLUE_STR)){
+		if(!std::string(lidar_colors[i]).compare(BLUE_STR)){
+			// ROS_INFO("BLUE");
 			colour = BLUE;
 		}
-		else if( std::string(lidar_colors[i]).compare(ORANGE_STR)){
+		else if(!std::string(lidar_colors[i]).compare(ORANGE_STR)){
+			// ROS_INFO("Orange");
 			colour = ORANGE;
 		}
-		else if( std::string(lidar_colors[i]).compare(YELLOW_STR)){
+		else if(!std::string(lidar_colors[i]).compare(YELLOW_STR)){
+			// ROS_INFO("Yellow");
 			colour = YELLOW;
 		}
-		else if( std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+		else if(!std::string(lidar_colors[i]).compare(BIG_STR)){
+			// ROS_INFO("BIG");
+			colour = BIG;
+		}
+		else if(!std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+			// ROS_INFO("unknown");
+			colour = UNKNOWN;
+		}
+		else{
+			// ROS_INFO("unknown");
 			colour = UNKNOWN;
 		}
 		coneColourFilter.update_measurement(idx,colour);
@@ -400,16 +411,28 @@ void ekfslam::runnableStableRate()
 			// ROS_INFO("YLM: %lf", ylm);
 			
 			idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
-			if( std::string(lidar_colors[i]).compare(BLUE_STR)){
+			if(!std::string(lidar_colors[i]).compare(BLUE_STR)){
+				// ROS_INFO("BLUE");
 				colour = BLUE;
 			}
-			else if( std::string(lidar_colors[i]).compare(ORANGE_STR)){
+			else if(!std::string(lidar_colors[i]).compare(ORANGE_STR)){
+				// ROS_INFO("Orange");
 				colour = ORANGE;
 			}
-			else if( std::string(lidar_colors[i]).compare(YELLOW_STR)){
+			else if(!std::string(lidar_colors[i]).compare(YELLOW_STR)){
+				// ROS_INFO("Yellow");
 				colour = YELLOW;
 			}
-			else if( std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+			else if(!std::string(lidar_colors[i]).compare(BIG_STR)){
+				// ROS_INFO("BIG");
+				colour = BIG;
+			}
+			else if(!std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+				// ROS_INFO("unknown");
+				colour = UNKNOWN;
+			}
+			else{
+				// ROS_INFO("unknown");
 				colour = UNKNOWN;
 			}
 			coneColourFilter.update_measurement(idx,colour);
@@ -560,11 +583,9 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
 	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
 	int length_x = data.x.size();
-	int length_y = data.y.size(); 
 
 	// test here for length equality, otherwise bugs will occur. 
 	if (length_x == 0) return;
-	assert (length_x == length_y);
 	z = Eigen::MatrixXf::Zero(3,length_x);
 
 	for (int i = 0; i <length_x; i++){
@@ -608,7 +629,7 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 void ekfslam::publishPose()
 {
 	nav_msgs::Odometry pose_pub;
-	pose_pub.header.frame_id = "map";
+	pose_pub.header.frame_id = "odom";
 	pose_pub.header.stamp = ros::Time();
 
 	pose_pub.pose.pose.position.x = px(0,0);
@@ -622,7 +643,7 @@ void ekfslam::publishTrack()
 	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
 
-	cone_msg.header.frame_id = "map";
+	cone_msg.header.frame_id = "odom";
 	cone_msg.header.stamp = current_time;
 
 	std::vector<float> x_cones(lm_num);
@@ -645,7 +666,7 @@ void ekfslam::publishTrack()
 	visualization_msgs::MarkerArray mk_arr; 
 	for (int i = 0; i <lm_num; i++){
 		visualization_msgs::Marker marker; 
-		marker.header.frame_id = "map";
+		marker.header.frame_id = "odom";
 		marker.header.stamp = ros::Time();
 		marker.id = i;
 		marker.type = visualization_msgs::Marker::SPHERE;
@@ -684,6 +705,14 @@ void ekfslam::publishTrack()
 		marker.color.b = yellow.b; 
 		marker.color.g = yellow.g; 
 		marker.color.r = yellow.r;
+		}
+		else if (colour == BIG){
+			marker.scale.x = 0.5; 
+			marker.scale.y = 0.5; 
+			marker.scale.z = 0.5; 
+			marker.color.b = orange.b; 
+			marker.color.g = orange.g; 
+			marker.color.r = orange.r;
 		}
 		else
 		{

@@ -27,11 +27,13 @@
 #define BLUE 0
 #define YELLOW 1
 #define ORANGE 2
-#define UNKNOWN 3
+#define BIG 3 
+#define UNKNOWN 4
 
 #define BLUE_STR "BLUE"
 #define ORANGE_STR "ORANGE"
 #define YELLOW_STR "YELLOW"
+#define BIG_STR "BIG"
 #define UNKNOWN_STR "na"
 
 #define PUBLISH_MARKERS
@@ -108,7 +110,7 @@ private:
 	#ifdef SIMULATED_MODE
 		std::string ODOM_TOPIC = "/odom";
 		std::string CAM_TOPIC = "/camera/cones";
-		std::string LIDAR_TOPIC = "/cone_messages";
+		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
 		std::string FILTERED_TOPIC = "/slam/map";
 		std::string SLAM_POSE_TOPIC = "/slam/odom";
 		std::string CONTROL_TOPIC = "/cmd_vel";
