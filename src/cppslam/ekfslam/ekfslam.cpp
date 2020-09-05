@@ -255,15 +255,19 @@ void ekfslam::runnableTrigger(int reading_type)
 			colour = ORANGE;
 		}
 		else if(!std::string(lidar_colors[i]).compare(YELLOW_STR)){
-			ROS_INFO("Yellow");
+			// ROS_INFO("Yellow");
 			colour = YELLOW;
+		}
+		else if(!std::string(lidar_colors[i]).compare(BIG_STR)){
+			// ROS_INFO("BIG");
+			colour = BIG;
 		}
 		else if(!std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
 			// ROS_INFO("unknown");
 			colour = UNKNOWN;
 		}
 		else{
-			ROS_INFO("unknown");
+			// ROS_INFO("unknown");
 			colour = UNKNOWN;
 		}
 		coneColourFilter.update_measurement(idx,colour);
@@ -407,24 +411,28 @@ void ekfslam::runnableStableRate()
 			// ROS_INFO("YLM: %lf", ylm);
 			
 			idx = ekfslam::getCorrespondingLandmark(xlm,ylm);
-			if( std::string(lidar_colors[i]).compare(BLUE_STR)){
-				ROS_INFO("BLUE");
+			if(!std::string(lidar_colors[i]).compare(BLUE_STR)){
+				// ROS_INFO("BLUE");
 				colour = BLUE;
 			}
-			else if( std::string(lidar_colors[i]).compare(ORANGE_STR)){
-				ROS_INFO("Orange");
+			else if(!std::string(lidar_colors[i]).compare(ORANGE_STR)){
+				// ROS_INFO("Orange");
 				colour = ORANGE;
 			}
-			else if( std::string(lidar_colors[i]).compare(YELLOW_STR)){
-				ROS_INFO("Yellow");
+			else if(!std::string(lidar_colors[i]).compare(YELLOW_STR)){
+				// ROS_INFO("Yellow");
 				colour = YELLOW;
 			}
-			else if( std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
-				ROS_INFO("unknown");
+			else if(!std::string(lidar_colors[i]).compare(BIG_STR)){
+				// ROS_INFO("BIG");
+				colour = BIG;
+			}
+			else if(!std::string(lidar_colors[i]).compare(UNKNOWN_STR)){
+				// ROS_INFO("unknown");
 				colour = UNKNOWN;
 			}
 			else{
-				ROS_INFO("unknown");
+				// ROS_INFO("unknown");
 				colour = UNKNOWN;
 			}
 			coneColourFilter.update_measurement(idx,colour);
@@ -697,6 +705,14 @@ void ekfslam::publishTrack()
 		marker.color.b = yellow.b; 
 		marker.color.g = yellow.g; 
 		marker.color.r = yellow.r;
+		}
+		else if (colour == BIG){
+			marker.scale.x = 0.5; 
+			marker.scale.y = 0.5; 
+			marker.scale.z = 0.5; 
+			marker.color.b = orange.b; 
+			marker.color.g = orange.g; 
+			marker.color.r = orange.r;
 		}
 		else
 		{

@@ -27,11 +27,13 @@
 #define BLUE 0
 #define YELLOW 1
 #define ORANGE 2
-#define UNKNOWN 3
+#define BIG 3 
+#define UNKNOWN 4
 
 #define BLUE_STR "BLUE"
 #define ORANGE_STR "ORANGE"
 #define YELLOW_STR "YELLOW"
+#define BIG_STR "BIG"
 #define UNKNOWN_STR "na"
 
 #define PUBLISH_MARKERS
