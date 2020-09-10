@@ -180,8 +180,8 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 	white.b = 1.0; 
 	white.g = 1.0;
 	// starting position!
-	x(0,0) = -52.0;
-	x(1,0) = 0;
+	x(0,0) = -11.227647;
+	x(1,0) = 10.438498;
 	x(2,0) = 0;
 	while (ros::ok())
 	{

@@ -21,7 +21,7 @@
 
 #define SIMULATED_MODE
 
-#define MAX_DISTANCE  0.3
+#define MAX_DISTANCE  1.0
 #define LM_SIZE 2
 
 #define BLUE 0
