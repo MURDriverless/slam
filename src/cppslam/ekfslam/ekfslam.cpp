@@ -690,7 +690,7 @@ void ekfslam::publishTrack()
 	visualization_msgs::MarkerArray mk_arr; 
 	for (int i = 0; i <lm_num; i++){
 		visualization_msgs::Marker marker; 
-		marker.header.frame_id = "odom";
+		marker.header.frame_id = "map";
 		marker.header.stamp = ros::Time();
 		marker.id = i;
 		marker.type = visualization_msgs::Marker::SPHERE;
