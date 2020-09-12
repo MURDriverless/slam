@@ -648,21 +648,45 @@ void ekfslam::publishTrack()
 
 	std::vector<float> x_cones(lm_num);
 	std::vector<float> y_cones(lm_num);
+	std::vector<std::string> colour_cones(lm_num);
+	int colour;
 
 	for (int i = 0; i<lm_num; i++){
 		x_cones[i] =  px(STATE_SIZE + i*LM_SIZE,0);
 		y_cones[i] = px(STATE_SIZE + i*LM_SIZE + 1,0);
+		colour = coneColourFilter.state(i,0);
+
+		if (colour == BLUE)
+		{
+			colour_cones[i] = BLUE_STR;
+		}
+		else if (colour == ORANGE)
+		{
+			colour_cones[i] = ORANGE_STR;
+
+		}
+		else if (colour == YELLOW)
+		{
+			colour_cones[i] = YELLOW_STR;
+
+		}
+		else if (colour == BIG){
+			colour_cones[i] = BIG_STR;
+
+		}
+		else
+		{
+			colour_cones[i] = UNKNOWN_STR;
+
+		}
 	} 
 	cone_msg.x = x_cones; 
 	cone_msg.y = y_cones;
-	// Including a colour vector so its not empty, (but it is)
-	std::vector<std::string> cone_colours; 
-	cone_msg.colour = cone_colours;
+	cone_msg.colour = colour_cones;
 	track.publish(cone_msg);
 	// publish marker array
 
 	#ifdef PUBLISH_MARKERS 
-	int colour;
 	visualization_msgs::MarkerArray mk_arr; 
 	for (int i = 0; i <lm_num; i++){
 		visualization_msgs::Marker marker; 
