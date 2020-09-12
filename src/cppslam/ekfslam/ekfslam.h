@@ -7,7 +7,7 @@
 #include "geometry_msgs/Pose2D.h"
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "mur_common/cone_msg.h"
-#include "mur_common/mur_drive_cmd.h"
+// #include "mur_common/mur_drive_cmd.h"
 #include <cassert>
 #include <vector>
 #include "../point/point.h"
@@ -27,7 +27,7 @@
 #define BLUE 0
 #define YELLOW 1
 #define ORANGE 2
-#define BIG 3 
+#define BIG 3
 #define UNKNOWN 4
 
 #define BLUE_STR "BLUE"
@@ -47,11 +47,11 @@ void printEigenMatrix(Eigen::MatrixXf mat);
 typedef struct
 {
 	// red value
-	float r; 
-	// green value 
-	float g; 
+	float r;
+	// green value
+	float g;
 	// blue value
-	float b; 
+	float b;
 } rgb_t;
 
 class ekfslam
@@ -71,7 +71,7 @@ private:
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
 	void odomclb(const geometry_msgs::Pose2D &data);
 	void controlclb(const geometry_msgs::Twist &data);
-	
+
 	ros::Subscriber camCld;
 	ros::Subscriber lidarCld;
 	ros::Subscriber odomSub;
@@ -108,11 +108,11 @@ private:
 	//static message topic names
 
 	#ifdef SIMULATED_MODE
-		std::string ODOM_TOPIC = "/odom";
+		std::string ODOM_TOPIC = "/map";
 		std::string CAM_TOPIC = "/camera/cones";
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
-		std::string FILTERED_TOPIC = "/slam/map";
-		std::string SLAM_POSE_TOPIC = "/slam/odom";
+		std::string FILTERED_TOPIC = "/mur/slam/cones";// original "/slam/map";
+		std::string SLAM_POSE_TOPIC = "/mur/slam/Odom";
 		std::string CONTROL_TOPIC = "/cmd_vel";
 		std::string MARKER_ARRAY_TOPIC = "/map_markers";
 	#endif
@@ -138,8 +138,8 @@ private:
 	Eigen::MatrixXf cv; //state covariance
 	Eigen::MatrixXf u;
 	Eigen::MatrixXf G;
-	
-	Eigen::MatrixXf H; 
+
+	Eigen::MatrixXf H;
 
 
 	Eigen::MatrixXf F; // Jacobian Matrix
@@ -159,13 +159,13 @@ private:
 
 	static const int QUE_SIZE = 1;
 	// RGB colours
-	rgb_t orange; 
-	rgb_t blue; 
+	rgb_t orange;
+	rgb_t blue;
 	rgb_t yellow;
 	rgb_t white;
 
-	std::vector<std::string> lidar_colors; 
-	std::vector<std::string> camera_colors; 
-	
+	std::vector<std::string> lidar_colors;
+	std::vector<std::string> camera_colors;
+
 };
 #endif
