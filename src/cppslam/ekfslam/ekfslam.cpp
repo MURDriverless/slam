@@ -111,8 +111,8 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	white.b = 1.0; 
 	white.g = 1.0;
 	// starting position!
-	x(0,0) = -52.0;
-	x(1,0) = 0;
+	x(0,0) = -13.0;
+	x(1,0) = 10.3;
 	x(2,0) = 0;
 	while (ros::ok())
 	{
@@ -180,8 +180,8 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 	white.b = 1.0; 
 	white.g = 1.0;
 	// starting position!
-	x(0,0) = -11.227647;
-	x(1,0) = 10.438498;
+	x(0,0) = -13.0;
+	x(1,0) = 10.3;
 	x(2,0) = 0;
 	while (ros::ok())
 	{
@@ -629,7 +629,7 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 void ekfslam::publishPose()
 {
 	nav_msgs::Odometry pose_pub;
-	pose_pub.header.frame_id = "odom";
+	pose_pub.header.frame_id = "map";
 	pose_pub.header.stamp = ros::Time();
 
 	pose_pub.pose.pose.position.x = px(0,0);
@@ -643,7 +643,7 @@ void ekfslam::publishTrack()
 	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
 
-	cone_msg.header.frame_id = "odom";
+	cone_msg.header.frame_id = "map";
 	cone_msg.header.stamp = current_time;
 
 	std::vector<float> x_cones(lm_num);

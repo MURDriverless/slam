@@ -7,7 +7,7 @@
 #include "geometry_msgs/Pose2D.h"
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "mur_common/cone_msg.h"
-#include "mur_common/mur_drive_cmd.h"
+// #include "mur_common/mur_drive_cmd.h"
 #include <cassert>
 #include <vector>
 #include "../point/point.h"
@@ -108,11 +108,11 @@ private:
 	//static message topic names
 
 	#ifdef SIMULATED_MODE
-		std::string ODOM_TOPIC = "/odom";
+		std::string ODOM_TOPIC = "/map";
 		std::string CAM_TOPIC = "/camera/cones";
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
-		std::string FILTERED_TOPIC = "/slam/map";
-		std::string SLAM_POSE_TOPIC = "/slam/odom";
+		std::string FILTERED_TOPIC = "/mur/slam/cones";
+		std::string SLAM_POSE_TOPIC = "/mur/slam/Odom";
 		std::string CONTROL_TOPIC = "/cmd_vel";
 		std::string MARKER_ARRAY_TOPIC = "/map_markers";
 	#endif
