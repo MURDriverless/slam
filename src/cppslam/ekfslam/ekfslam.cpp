@@ -10,15 +10,16 @@
 
 int ekfslam::launchSubscribers(){
 	try {
+	odomSub = nh.subscribe(ODOM_TOPIC, 3, &ekfslam::odomclb, this);
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
-	odomSub = nh.subscribe(ODOM_TOPIC, 3, &ekfslam::odomclb, this);
 	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &ekfslam::controlclb, this); 
 	}
 	catch (const char *msg){
 		ROS_ERROR_STREAM(msg);
 		return 0; // failure
 	}
+	
 	return 1;
 }
 
@@ -73,6 +74,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 {
 	TRIGGER_MODE = false;
 	ROS_INFO_STREAM("Extended Kalman filter created");
+	
 
 	ROS_INFO_STREAM("Stable Rate mode");
 
@@ -111,7 +113,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	white.b = 1.0; 
 	white.g = 1.0;
 	// starting position!
-	x(0,0) = -52.0;
+	x(0,0) = 0;
 	x(1,0) = 0;
 	x(2,0) = 0;
 	while (ros::ok())
@@ -127,6 +129,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 			{
 				throw "FAILED TO SUBSCRIBE TO SENSORS";
 			}
+			ROS_INFO("Launching...");
 			return; // returns if subscribers succesfully initialised
 		}
 
@@ -135,8 +138,6 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 			ROS_ERROR_STREAM(msg);
 		}
 	}
-	ROS_INFO("Launching...");
-	ros::Duration(2).sleep(); 
 	return;
 }
 
@@ -146,7 +147,11 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 	ROS_INFO_STREAM("Extended Kalman filter created");
 	
 	ROS_INFO_STREAM("Trigger Mode");
-	
+	double time = ros::Time::now().toSec();
+	while (time < 1){
+		time =ros::Time::now().toSec();
+	}
+	launchtime = time;
 	discreteBayes coneColourFilter();
 	nh = n;
 	int status = 1;
@@ -200,8 +205,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 			ROS_ERROR_STREAM(msg);
 		}
 	}
-	ROS_INFO("Launching...");
-	ros::Duration(2).sleep(); 
+
 	return;
 }
 
@@ -272,6 +276,11 @@ void ekfslam::runnableTrigger(int reading_type)
 	double xlm, ylm, xr, yr, theta_p;
 	dt = ros::Time::now().toSec() - time; 
 	time = ros::Time::now().toSec();
+	ROS_INFO("time: %lf, ltime: %lf", time, launchtime);
+	if (fabs(time - launchtime)< 5){
+		ROS_INFO("Waiting for Odometry to zero");
+		return;
+	}
 	// predict Step
 	ekfslam::motionModel(); // predicts px
 	ekfslam::computeJacobian(); // Computes Jacobian "F"
@@ -667,7 +676,7 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 	lidar_colors.clear();
 	z = Eigen::MatrixXf::Zero(3,length_x);
 	for (int i = 0; i <length_x; i++){
-		z(0,i) = data.x[i];
+		z(0,i) = data.x[i] + LIDAR_OFFSET_X;
 		z(1,i) = data.y[i];
 		lidar_colors.push_back(data.colour[i]);
 		z(2,i) = 0;
@@ -681,7 +690,7 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 void ekfslam::publishPose()
 {
 	nav_msgs::Odometry pose_pub;
-	pose_pub.header.frame_id = "odom";
+	pose_pub.header.frame_id = "map";
 	pose_pub.header.stamp = ros::Time();
 
 	pose_pub.pose.pose.position.x = px(0,0);
@@ -695,7 +704,7 @@ void ekfslam::publishTrack()
 	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
 
-	cone_msg.header.frame_id = "odom";
+	cone_msg.header.frame_id = "map";
 	cone_msg.header.stamp = current_time;
 
 	std::vector<float> x_cones(lm_num);
@@ -742,7 +751,7 @@ void ekfslam::publishTrack()
 	visualization_msgs::MarkerArray mk_arr; 
 	for (int i = 0; i <lm_num; i++){
 		visualization_msgs::Marker marker; 
-		marker.header.frame_id = "odom";
+		marker.header.frame_id = "map";
 		marker.header.stamp = ros::Time();
 		marker.id = i;
 		marker.type = visualization_msgs::Marker::SPHERE;

@@ -20,7 +20,7 @@
 
 #define SIMULATED_MODE
 
-#define MAX_DISTANCE  1.0
+#define MAX_DISTANCE  0.3
 #define LM_SIZE 2
 
 #define BLUE 0
@@ -34,6 +34,8 @@
 #define YELLOW_STR "YELLOW"
 #define BIG_STR "BIG"
 #define UNKNOWN_STR "na"
+
+#define LIDAR_OFFSET_X 1.7
 
 #define PUBLISH_MARKERS
 
@@ -107,16 +109,17 @@ private:
 	double time;
 	double odom_time; 
 	double odom_time_prev;
+	double launchtime; 
 	//static message topic names
 
 	#ifdef SIMULATED_MODE
 		std::string ODOM_TOPIC = "/odom";
 		std::string CAM_TOPIC = "/camera/cones";
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
-		std::string FILTERED_TOPIC = "/slam/map";
-		std::string SLAM_POSE_TOPIC = "/slam/odom";
+		std::string FILTERED_TOPIC = "/mur/slam/cones";
+		std::string SLAM_POSE_TOPIC = "/mur/slam/Odom";
 		std::string CONTROL_TOPIC = "/cmd_vel";
-		std::string MARKER_ARRAY_TOPIC = "/map_markers";
+		std::string MARKER_ARRAY_TOPIC = "/mur/slam/map_markers";
 	#endif
 
 	#ifdef REAL_MODE
