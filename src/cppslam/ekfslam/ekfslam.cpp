@@ -12,7 +12,7 @@ int ekfslam::launchSubscribers(){
 	try {
 	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbCam, this);
 	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &ekfslam::ptcloudclbLidar, this);
-	// odomSub = nh.subscribe(ODOM_TOPIC, QUE_SIZE, &ekfslam::odomclb, this);
+	odomSub = nh.subscribe(ODOM_TOPIC, 3, &ekfslam::odomclb, this);
 	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &ekfslam::controlclb, this); 
 	}
 	catch (const char *msg){
@@ -179,10 +179,6 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 	white.r = 1.0; 
 	white.b = 1.0; 
 	white.g = 1.0;
-	// starting position!
-	x(0,0) = -11.227647;
-	x(1,0) = 10.438498;
-	x(2,0) = 0;
 	while (ros::ok())
 	{
 		try
@@ -209,9 +205,66 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 	return;
 }
 
-void ekfslam::odomclb(const geometry_msgs::Pose2D &data){
-	
+void ekfslam::odomclb(const nav_msgs::Odometry &data){
+	odom_time = ros::Time::now().toSec();
+	// if (fabs(odom_time - odom_time_prev)<0.01){
+	// 	return; 
+	// }
+	odom_time_prev = odom_time;
+	z = Eigen::MatrixXf::Zero(5,1);
+	double x = data.pose.pose.position.x;
+	double y = data.pose.pose.position.y;
+	geometry_msgs::Quaternion q = data.pose.pose.orientation;
+	tf::Quaternion quat;
+    tf::quaternionMsgToTF(q, quat);
+
+    // the tf::Quaternion has a method to acess roll pitch and yaw
+    double roll, pitch, yaw;
+    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+
+    // the found angles are written in a geometry_msgs::Vector3
+    geometry_msgs::Vector3 rpy;
+    rpy.x = roll;
+    rpy.y = pitch;
+    rpy.z = yaw;
+	double theta = yaw;
+	odomUpdate(x,y,theta);
 	return;
+}
+void ekfslam::odomUpdate(double x_val, double y_val, double t_val)
+{
+	dt = ros::Time::now().toSec() - time; 
+	time = ros::Time::now().toSec();
+	// predict Step
+	ekfslam::motionModel(); // predicts px
+	ekfslam::computeJacobian(); // Computes Jacobian "F"
+
+	Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+	
+	ekfslam::UpdateCovariance();
+
+	y = Eigen::MatrixXf::Zero(3,1);
+	y(0,0) = px(0,0) - x_val; 
+	y(1,0) = px(1,0) - y_val;
+	y(2,0) = px(2,0) - t_val;
+	H = Eigen::MatrixXf::Identity(3,STATE_SIZE + LM_SIZE * lm_num);
+	for (int i = 0; i<lm_num; i++){
+		H(0,STATE_SIZE + LM_SIZE * i) = 1;
+		H(1,STATE_SIZE + LM_SIZE * i+1) = 1;
+	}
+	K = Eigen::MatrixXf::Zero(3,3);
+	Eigen::MatrixXf k_tmp; 
+	Eigen::MatrixXf Q_small; 
+	Q_small = Eigen::MatrixXf::Identity(3, 3) * 10.0;
+	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
+	K = pcv * H.transpose() * k_tmp;
+
+	px = px - K*y;
+
+	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
+	pcv = (I - K * H) * pcv;
+	x = px; 
+	publishPose();
 }
 void ekfslam::runnableTrigger(int reading_type)
 {
@@ -602,7 +655,6 @@ void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 
 void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 {
-	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
 	int length_x = data.x.size();
 	int length_y = data.y.size();
 

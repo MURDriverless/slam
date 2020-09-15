@@ -7,7 +7,6 @@
 #include "geometry_msgs/Pose2D.h"
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "mur_common/cone_msg.h"
-#include "mur_common/mur_drive_cmd.h"
 #include <cassert>
 #include <vector>
 #include "../point/point.h"
@@ -62,6 +61,7 @@ public:
 	ekfslam(ros::NodeHandle n, int state_size);
 	void runnableStableRate();
 	void runnableTrigger(int reading_type);
+	void odomUpdate(double x, double y, double t);
 
 private:
 	int launchSubscribers();
@@ -69,7 +69,7 @@ private:
 
 	void ptcloudclbCam(const mur_common::cone_msg &data);
 	void ptcloudclbLidar(const mur_common::cone_msg &data);
-	void odomclb(const geometry_msgs::Pose2D &data);
+	void odomclb(const nav_msgs::Odometry &data);
 	void controlclb(const geometry_msgs::Twist &data);
 	
 	ros::Subscriber camCld;
@@ -105,6 +105,8 @@ private:
 	double dt;
 	int HZ;
 	double time;
+	double odom_time; 
+	double odom_time_prev;
 	//static message topic names
 
 	#ifdef SIMULATED_MODE
