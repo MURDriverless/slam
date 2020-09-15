@@ -276,9 +276,8 @@ void ekfslam::runnableTrigger(int reading_type)
 	double xlm, ylm, xr, yr, theta_p;
 	dt = ros::Time::now().toSec() - time; 
 	time = ros::Time::now().toSec();
-	ROS_INFO("time: %lf, ltime: %lf", time, launchtime);
+	ROS_INFO("Waiting for Odometry to zero...");
 	if (fabs(time - launchtime)< 5){
-		ROS_INFO("Waiting for Odometry to zero");
 		return;
 	}
 	// predict Step
