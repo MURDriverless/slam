@@ -113,8 +113,8 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	white.b = 1.0; 
 	white.g = 1.0;
 	// starting position!
-	x(0,0) = 0;
-	x(1,0) = 0;
+	x(0,0) = -13.0;
+	x(1,0) = 10.3;
 	x(2,0) = 0;
 	while (ros::ok())
 	{
@@ -211,7 +211,7 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size)
 
 void ekfslam::odomclb(const nav_msgs::Odometry &data){
 	odom_time = ros::Time::now().toSec();
-	// if (fabs(odom_time - odom_time_prev)<0.01){
+	// if (fabs(odom_time - odom_time_prev)<0.1){
 	// 	return; 
 	// }
 	odom_time_prev = odom_time;
@@ -239,7 +239,7 @@ void ekfslam::odomclb(const nav_msgs::Odometry &data){
 	double omega = data.twist.twist.angular.z;
 	z(0,0) = x; 
 	z(1,0) = y; 
-	z(2,0) = yaw; 
+	z(2,0) = pi2pi(yaw); 
 	z(3,0) = v; 
 	z(4,0) = omega; 
 	
@@ -254,12 +254,15 @@ void ekfslam::odomUpdate()
 	ekfslam::motionModel(); // predicts px
 	ekfslam::computeJacobian(); // Computes Jacobian "F"
 
-	Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+	Q = 2 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
 	
 	ekfslam::UpdateCovariance();
 
 	y = Eigen::MatrixXf::Zero(5,1);
 	y = px - z;
+	y(2,0) = pi2pi(y(2,0));
+	y(4,0) = pi2pi(y(4,0));
+	 
 	H = Eigen::MatrixXf::Identity(5,STATE_SIZE + LM_SIZE * lm_num);
 	for (int i = 0; i<lm_num; i++){
 		H(0,STATE_SIZE + LM_SIZE * i) = 1;
@@ -268,7 +271,7 @@ void ekfslam::odomUpdate()
 	K = Eigen::MatrixXf::Zero(5,5);
 	Eigen::MatrixXf k_tmp; 
 	Eigen::MatrixXf Q_small; 
-	Q_small = Eigen::MatrixXf::Identity(5, 5) * 5.0;
+	Q_small = Eigen::MatrixXf::Identity(5, 5) * 0.5;
 	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 	K = pcv * H.transpose() * k_tmp;
 
@@ -293,7 +296,13 @@ void ekfslam::runnableTrigger(int reading_type)
 	ekfslam::motionModel(); // predicts px
 	ekfslam::computeJacobian(); // Computes Jacobian "F"
 
-	Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+	Q = 1* Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+	Q(0,0) = 0.01;
+	Q(1,0) = 0.01;
+	Q(2,0) = 0.01;
+	Q(3,0) = 0.01;
+	Q(4,0) = 0.01;
+	
 	
 	ekfslam::UpdateCovariance();
 	// pcv = F * cv * F.transpose() + F_x * Q * F_x.transpose(); // predicts Covariance
@@ -358,8 +367,8 @@ void ekfslam::runnableTrigger(int reading_type)
 
 				cv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
 				pcv.conservativeResizeLike(Eigen::MatrixXf::Zero(new_size,new_size));
-				pcv(new_size-1,new_size-1) = 0.5;
-				pcv(new_size-2,new_size-2) = 0.5;
+				pcv(new_size-1,new_size-1) = 0.01;
+				pcv(new_size-2,new_size-2) = 0.01;
 				
 				
 				// ROS_INFO("Resizing complete");
@@ -380,21 +389,17 @@ void ekfslam::runnableTrigger(int reading_type)
 		F_j(4,4) = 1;
 		F_j(5,(idx)*LM_SIZE + STATE_SIZE) = 1;
 		F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
-
 		H_j(0,0) = 1;
 		H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
 
-		H_j(0,STATE_SIZE) = cos(theta_p);
-		H_j(0,STATE_SIZE+1) = sin(theta_p);
 
-		H_j(0,STATE_SIZE) = cos(theta_p);
-		H_j(0,STATE_SIZE+1) = -sin(theta_p);
+		H_j(0,STATE_SIZE) = -cos(theta_p);
+		H_j(0,STATE_SIZE+1) = sin(theta_p);
 			
 		H_j(1,1) = 1;
 		H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
-		H_j(1,STATE_SIZE) = sin(theta_p);
-		H_j(1,STATE_SIZE+1) = cos(theta_p);
-		H_j = H_j * - 1;
+		H_j(1,STATE_SIZE) = -sin(theta_p);
+		H_j(1,STATE_SIZE+1) = -cos(theta_p);
 		H = Eigen::MatrixXf::Zero(2,7);
 		H = H_j * F_j;
 		// printf("F_j");
@@ -411,8 +416,8 @@ void ekfslam::runnableTrigger(int reading_type)
 		K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
 		Eigen::MatrixXf k_tmp; 
 		Eigen::MatrixXf Q_small; 
-		Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*10.0;
-		k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
+		Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*0.5;
+		k_tmp = (H * pcv * H.transpose() +Q_small).inverse();
 		// printf("K_temp");
 		// printEigenMatrix(k_tmp);
 		K = pcv * H.transpose() * k_tmp;
@@ -420,7 +425,7 @@ void ekfslam::runnableTrigger(int reading_type)
 		// printEigenMatrix(K);
 
 
-		px = px +  K*y;
+		px = px -  K*y;
 		// printf("px");
 		// printEigenMatrix(px);
 
@@ -457,7 +462,7 @@ void ekfslam::runnableStableRate()
 		ekfslam::motionModel(); // predicts px
 		ekfslam::computeJacobian(); // Computes Jacobian "F"
 
-		Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+		Q = 0.5 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
 		
 		ekfslam::UpdateCovariance();
 		// pcv = F * cv * F.transpose() + F_x * Q * F_x.transpose(); // predicts Covariance
@@ -576,7 +581,7 @@ void ekfslam::runnableStableRate()
 			K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
 			Eigen::MatrixXf k_tmp; 
 			Eigen::MatrixXf Q_small; 
-			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*10.0;
+			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*2.0;
 			k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 			// printf("K_temp");
 			// printEigenMatrix(k_tmp);
@@ -624,11 +629,11 @@ void  ekfslam::motionModel()
 	*/
 	double theta = x(2,0);
 	double v = u(0,0); 
-	double theta_dot = u(0,1);
+	double theta_dot = x(4,0);
 	px(0,0) = x(0,0) + dt * v * cos(theta); 
 	px(1,0) = x(1,0) + dt * v * sin(theta);
 	px(2,0) = theta + dt * theta_dot;
-	// px(2,0) = pi2pi(px(2,0));
+	px(2,0) = pi2pi(px(2,0));
 	px(3,0) = u(0,0); // velocity commanded,
 	px(4,0) = u(0,1); // angular velocity commanded.	
 	// Landmarks dont need updating
@@ -835,6 +840,13 @@ void ekfslam::UpdateCovariance(){
 	F(2,2) =1;
 	F(3,3) =1;
 	F(4,4) =1;
+
+	// I(0,0) =0.1;
+	// I(1,1) =0.1;
+	// I(2,2) =0.1;
+	// I(3,3) =0.1;
+	// I(4,4) =0.1;
+
 	double theta = x(3,0);
 	double v = x(4,0);
 	jf(0,2) = -dt * v * sin(theta); 
@@ -862,8 +874,8 @@ void ekfslam::UpdateCovariance(){
 }
 void ekfslam::controlclb(const geometry_msgs::Twist &data)
 {
-	u(0,0) = data.linear.x;
-	u(0,1) = data.angular.z;
+	u(0,0) = 0*data.linear.x;
+	u(0,1) = 0*data.angular.z;
 	// dt = ros::Time::now().toSec()-time;
 	// time = ros::Time::now().toSec();
 	// motionModel();
