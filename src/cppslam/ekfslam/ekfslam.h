@@ -118,7 +118,7 @@ private:
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
 		std::string FILTERED_TOPIC = "/mur/slam/cones";
 		std::string SLAM_POSE_TOPIC = "/mur/slam/Odom";
-		std::string CONTROL_TOPIC = "/cmd_vel";
+		std::string CONTROL_TOPIC = "/mur/control/desired";
 		std::string MARKER_ARRAY_TOPIC = "/mur/slam/map_markers";
 	#endif
 
