@@ -231,11 +231,22 @@ void ekfslam::odomclb(const nav_msgs::Odometry &data){
     rpy.x = roll;
     rpy.y = pitch;
     rpy.z = yaw;
-	double theta = yaw;
-	odomUpdate(x,y,theta);
+	// get forward velocity
+	double x_d =0, y_d = 0; 
+	x_d = data.twist.twist.linear.x;
+	y_d = data.twist.twist.linear.y;
+	double v = sqrt(x_d*x_d + y_d * y_d);
+	double omega = data.twist.twist.angular.z;
+	z(0,0) = x; 
+	z(1,0) = y; 
+	z(2,0) = yaw; 
+	z(3,0) = v; 
+	z(4,0) = omega; 
+	
+	odomUpdate();
 	return;
 }
-void ekfslam::odomUpdate(double x_val, double y_val, double t_val)
+void ekfslam::odomUpdate()
 {
 	dt = ros::Time::now().toSec() - time; 
 	time = ros::Time::now().toSec();
@@ -247,19 +258,17 @@ void ekfslam::odomUpdate(double x_val, double y_val, double t_val)
 	
 	ekfslam::UpdateCovariance();
 
-	y = Eigen::MatrixXf::Zero(3,1);
-	y(0,0) = px(0,0) - x_val; 
-	y(1,0) = px(1,0) - y_val;
-	y(2,0) = px(2,0) - t_val;
-	H = Eigen::MatrixXf::Identity(3,STATE_SIZE + LM_SIZE * lm_num);
+	y = Eigen::MatrixXf::Zero(5,1);
+	y = px - z;
+	H = Eigen::MatrixXf::Identity(5,STATE_SIZE + LM_SIZE * lm_num);
 	for (int i = 0; i<lm_num; i++){
 		H(0,STATE_SIZE + LM_SIZE * i) = 1;
 		H(1,STATE_SIZE + LM_SIZE * i+1) = 1;
 	}
-	K = Eigen::MatrixXf::Zero(3,3);
+	K = Eigen::MatrixXf::Zero(5,5);
 	Eigen::MatrixXf k_tmp; 
 	Eigen::MatrixXf Q_small; 
-	Q_small = Eigen::MatrixXf::Identity(3, 3) * 10.0;
+	Q_small = Eigen::MatrixXf::Identity(5, 5) * 5.0;
 	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 	K = pcv * H.transpose() * k_tmp;
 
@@ -268,6 +277,7 @@ void ekfslam::odomUpdate(double x_val, double y_val, double t_val)
 	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 	pcv = (I - K * H) * pcv;
 	x = px; 
+	printEigenMatrix(x);
 	publishPose();
 }
 void ekfslam::runnableTrigger(int reading_type)

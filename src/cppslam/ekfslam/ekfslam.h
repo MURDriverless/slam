@@ -63,7 +63,7 @@ public:
 	ekfslam(ros::NodeHandle n, int state_size);
 	void runnableStableRate();
 	void runnableTrigger(int reading_type);
-	void odomUpdate(double x, double y, double t);
+	void odomUpdate();
 
 private:
 	int launchSubscribers();
