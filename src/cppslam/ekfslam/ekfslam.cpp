@@ -695,6 +695,8 @@ void ekfslam::publishPose()
 	pose_pub.pose.pose.position.x = px(0,0);
 	pose_pub.pose.pose.position.y = px(1,0);
 	pose_pub.pose.pose.orientation = tf::createQuaternionMsgFromYaw(px(2,0));
+	pose_pub.twist.twist.linear.x = px(3,0);
+	pose_pub.twist.twist.angular.z = px(4,0);
 	pose.publish(pose_pub); 
 }
 void ekfslam::publishTrack()
