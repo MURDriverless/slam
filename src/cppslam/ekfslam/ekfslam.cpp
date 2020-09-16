@@ -277,7 +277,6 @@ void ekfslam::odomUpdate()
 	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 	pcv = (I - K * H) * pcv;
 	x = px; 
-	printEigenMatrix(x);
 	publishPose();
 }
 void ekfslam::runnableTrigger(int reading_type)
@@ -286,7 +285,7 @@ void ekfslam::runnableTrigger(int reading_type)
 	double xlm, ylm, xr, yr, theta_p;
 	dt = ros::Time::now().toSec() - time; 
 	time = ros::Time::now().toSec();
-	if (fabs(time - launchtime)< 5){
+	if (fabs(time - launchtime)< 2.5){
 		ROS_INFO("Waiting for Odometry to zero...");
 		return;
 	}
