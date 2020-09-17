@@ -630,8 +630,14 @@ void  ekfslam::motionModel()
 	double theta = x(2,0);
 	double v = u(0,0); 
 	double theta_dot = x(4,0);
+	// double theta_dot = x(3, 0) * tan(u(0, 1) * dt) / 2.951;  // WB = 2.951 
+	// double ddotx = -x(3, 0) * sin(x(2, 0))*u(0, 1);
+	// double ddoty = x(3, 0) * cos(x(2, 0))*u(0, 1);
 	px(0,0) = x(0,0) + dt * v * cos(theta); 
 	px(1,0) = x(1,0) + dt * v * sin(theta);
+	// double theta_dot = u(0,1);
+	// px(0,0) = x(0,0) + dt * v * cos(theta) + dt * dt /2.0 * ddotx; 
+	// px(1,0) = x(1,0) + dt * v * sin(theta) + dt * dt /2.0 * ddoty;
 	px(2,0) = theta + dt * theta_dot;
 	px(2,0) = pi2pi(px(2,0));
 	px(3,0) = u(0,0); // velocity commanded,

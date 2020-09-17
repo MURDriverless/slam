@@ -20,7 +20,7 @@
 
 #define SIMULATED_MODE
 
-#define MAX_DISTANCE  1
+#define MAX_DISTANCE  1.2
 #define LM_SIZE 2
 
 #define BLUE 0
@@ -35,7 +35,7 @@
 #define BIG_STR "BIG"
 #define UNKNOWN_STR "na"
 
-#define LIDAR_OFFSET_X 1.75
+#define LIDAR_OFFSET_X 1.7
 
 #define PUBLISH_MARKERS
 
