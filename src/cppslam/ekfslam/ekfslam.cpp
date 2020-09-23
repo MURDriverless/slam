@@ -624,12 +624,12 @@ void  ekfslam::motionModel()
 		model for higher speeds Where non-linearities become significant.
 	*/
 	double theta = x(2,0);
-	double v = u(0,0); 
-	double theta_dot = u(0,1);
+	double v = x(3,0); 
+	double theta_dot =x(4,0);
 	px(0,0) = x(0,0) + dt * v * cos(theta); 
 	px(1,0) = x(1,0) + dt * v * sin(theta);
 	px(2,0) = theta + dt * theta_dot;
-	// px(2,0) = pi2pi(px(2,0));
+	px(2,0) = pi2pi(px(2,0));
 	px(3,0) = u(0,0); // velocity commanded,
 	px(4,0) = u(0,1); // angular velocity commanded.	
 	// Landmarks dont need updating
@@ -863,11 +863,12 @@ void ekfslam::UpdateCovariance(){
 }
 void ekfslam::controlclb(const geometry_msgs::Twist &data)
 {
-	u(0,0) = data.linear.x;
-	u(0,1) = data.angular.z;
-	// dt = ros::Time::now().toSec()-time;
-	// time = ros::Time::now().toSec();
-	// motionModel();
+	double x_dot = data.linear.x;
+	double y_dot = data.linear.y;
+	u(0,0) = sqrt(x_dot*x_dot + y_dot*y_dot);
+	double beta = atan2(x_dot,y_dot);
+	double steering = data.angular.z;
+	u(0,1) = u(0,0) * cos(beta)*tan(steering)/1.5;
 	return;
 }
 double pi2pi(double val){
