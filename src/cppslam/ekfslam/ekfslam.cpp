@@ -239,7 +239,8 @@ void ekfslam::odomclb(const nav_msgs::Odometry &data){
 	double omega = data.twist.twist.angular.z;
 	z(0,0) = x; 
 	z(1,0) = y; 
-	z(2,0) = yaw; 
+	z(2,0) = pi2pi(yaw);
+
 	z(3,0) = v; 
 	z(4,0) = omega; 
 	
@@ -260,15 +261,16 @@ void ekfslam::odomUpdate()
 
 	y = Eigen::MatrixXf::Zero(5,1);
 	y = px - z;
+	y(2,0) = pi2pi(y(2,0)); 
 	H = Eigen::MatrixXf::Identity(5,STATE_SIZE + LM_SIZE * lm_num);
-	for (int i = 0; i<lm_num; i++){
-		H(0,STATE_SIZE + LM_SIZE * i) = 1;
-		H(1,STATE_SIZE + LM_SIZE * i+1) = 1;
-	}
+	// for (int i = 0; i<lm_num; i++){
+	// 	H(0,STATE_SIZE + LM_SIZE * i) = -1;
+	// 	H(1,STATE_SIZE + LM_SIZE * i+1) = -1;
+	// }
 	K = Eigen::MatrixXf::Zero(5,5);
 	Eigen::MatrixXf k_tmp; 
 	Eigen::MatrixXf Q_small; 
-	Q_small = Eigen::MatrixXf::Identity(5, 5) * 5.0;
+	Q_small = Eigen::MatrixXf::Identity(5, 5) * 0.1;
 	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 	K = pcv * H.transpose() * k_tmp;
 
@@ -277,6 +279,7 @@ void ekfslam::odomUpdate()
 	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 	pcv = (I - K * H) * pcv;
 	x = px; 
+	x(2,0) = pi2pi(x(2,0));
 	publishPose();
 }
 void ekfslam::runnableTrigger(int reading_type)
@@ -306,6 +309,7 @@ void ekfslam::runnableTrigger(int reading_type)
 
 	// ROS_INFO("Measurements: %d ",newMeasurements);
 	for (int i = 0; i<newMeasurements; i++){
+		// pcv = Q + pcv;
 		// ROS_INFO("New measurement");
 		// do data association
 		xr = z(0,i); 
@@ -382,19 +386,15 @@ void ekfslam::runnableTrigger(int reading_type)
 		F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
 
 		H_j(0,0) = 1;
-		H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
-
-		H_j(0,STATE_SIZE) = cos(theta_p);
-		H_j(0,STATE_SIZE+1) = sin(theta_p);
+		// H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
 
 		H_j(0,STATE_SIZE) = cos(theta_p);
 		H_j(0,STATE_SIZE+1) = -sin(theta_p);
 			
 		H_j(1,1) = 1;
-		H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
+		// H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
 		H_j(1,STATE_SIZE) = sin(theta_p);
 		H_j(1,STATE_SIZE+1) = cos(theta_p);
-		H_j = H_j * - 1;
 		H = Eigen::MatrixXf::Zero(2,7);
 		H = H_j * F_j;
 		// printf("F_j");
@@ -420,7 +420,7 @@ void ekfslam::runnableTrigger(int reading_type)
 		// printEigenMatrix(K);
 
 
-		px = px +  K*y;
+		px = px + K*y;
 		// printf("px");
 		// printEigenMatrix(px);
 
@@ -428,8 +428,10 @@ void ekfslam::runnableTrigger(int reading_type)
 		pcv = (I - K * H) * pcv;  
 		// printf("Pcv");
 		// printEigenMatrix(pcv);
+		px(2,0) = pi2pi(px(2,0));
 	}
-	x = px; 
+	x = px;
+	x(2,0) = pi2pi(x(2,0)); 
 	cv = pcv;
 	// ROS_INFO("Map Published: %ld", ros::Time::now().toNSec());
 	// printf("X"); 
@@ -559,7 +561,6 @@ void ekfslam::runnableStableRate()
 			H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
 			H_j(1,STATE_SIZE) = sin(theta_p);
 			H_j(1,STATE_SIZE+1) = cos(theta_p);
-			H_j = H_j * - 1;
 			H = Eigen::MatrixXf::Zero(2,7);
 			H = H_j * F_j;
 			// printf("F_j");
@@ -870,17 +871,20 @@ void ekfslam::controlclb(const geometry_msgs::Twist &data)
 	return;
 }
 double pi2pi(double val){
+	double ret;
 	if (val> PI){
-		return -(PI -std::fmod(val,PI));  
+		ret= -(PI +std::fmod(val,PI));  
 	}
 	else if (val < -PI)
 	{
-		return (PI - std::fmod(val,PI) );
+		ret =  (PI - std::fmod(val,PI) );
 	}
 	else{
-		return val;
+		ret =  val;
 	}
+	return ret;
 }
+
 void printEigenMatrix(Eigen::MatrixXf mat){
 	printf("\n\n");
 	if (mat.rows() == 0){
