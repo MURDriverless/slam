@@ -309,11 +309,13 @@ void ekfslam::runnableTrigger(int reading_type)
 
 	// ROS_INFO("Measurements: %d ",newMeasurements);
 	for (int i = 0; i<newMeasurements; i++){
+		Q = 0.01 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
 		// pcv = Q + pcv;
 		// ROS_INFO("New measurement");
 		// do data association
 		xr = z(0,i); 
 		yr = z(1,i); 
+		px(2,0) = pi2pi(px(2,0));
 		theta_p = px(2,0);
 		xlm = px(0,0) + xr * cos(theta_p) - yr * sin(theta_p);
 		ylm = px(1,0) + xr * sin(theta_p) + yr * cos(theta_p);
@@ -829,7 +831,7 @@ void ekfslam::UpdateCovariance(){
 
 	Eigen::MatrixXf G;
 	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(STATE_SIZE, STATE_SIZE); 
-	Eigen::MatrixXf jf= Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);
+	Eigen::MatrixXf jf= Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
 	Eigen::MatrixXf F = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE + LM_SIZE * lm_num);
 	F(0,0) =1;
 	F(1,1) =1;
@@ -874,11 +876,11 @@ void ekfslam::controlclb(const geometry_msgs::Twist &data)
 double pi2pi(double val){
 	double ret;
 	if (val> PI){
-		ret= -(PI +std::fmod(val,PI));  
+		ret= -(PI -std::fmod(val,PI));  
 	}
 	else if (val < -PI)
 	{
-		ret =  (PI - std::fmod(val,PI) );
+		ret =  (PI + std::fmod(val,PI) );
 	}
 	else{
 		ret =  val;

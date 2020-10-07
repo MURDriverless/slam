@@ -113,7 +113,9 @@ private:
 	//static message topic names
 
 	#ifdef SIMULATED_MODE
-		std::string ODOM_TOPIC = "/odom";
+		// std::string ODOM_TOPIC = "/mur/Odom";
+		std::string ODOM_TOPIC = "odom";
+		
 		std::string CAM_TOPIC = "/camera/cones";
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
 		std::string FILTERED_TOPIC = "/mur/slam/cones";
