@@ -62,6 +62,8 @@ class state:
 
         for lm in self.map:
             axes.scatter(lm[0], lm[1], marker="x", c="r")
+        plt.xlabel("X position (m)")
+        plt.ylabel("Y position (m)")
 
         plt.grid(True)
         plt.pause(0.0001)
@@ -71,8 +73,7 @@ class state:
         results_dir = os.path.join(script_dir, 'Results/')
         if not os.path.isdir(results_dir):
             os.makedirs(results_dir)
-        plt.xlabel("X position (m)")
-        plt.ylabel("Y position (m)")
+
         # print(my_path)
         fileName = results_dir+"SlamOutput" + str(time)+".png"
         plt.savefig(fileName)
