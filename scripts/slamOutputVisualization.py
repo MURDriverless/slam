@@ -71,7 +71,8 @@ class state:
         results_dir = os.path.join(script_dir, 'Results/')
         if not os.path.isdir(results_dir):
             os.makedirs(results_dir)
-
+        plt.xlabel("X position (m)")
+        plt.ylabel("Y position (m)")
         # print(my_path)
         fileName = results_dir+"SlamOutput" + str(time)+".png"
         plt.savefig(fileName)
