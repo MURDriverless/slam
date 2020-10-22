@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import os
 import csv
 import pandas as pd
+import pickle
 
 
 class robot:
@@ -62,6 +63,12 @@ class state:
 
         for lm in self.map:
             axes.scatter(lm[0], lm[1], marker="x", c="r")
+        
+        # note that by default the output file is saved to ~/.ros
+        # usage: https://stackoverflow.com/questions/899103/writing-a-list-to-a-file-with-python
+        with open('map_outfile', 'wb') as fp:
+            pickle.dump(self.map, fp)
+        
         plt.xlabel("X position (m)")
         plt.ylabel("Y position (m)")
 
