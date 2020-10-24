@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import csv
 import pandas as pd
+import pickle
 
 
 class robot:
@@ -69,6 +70,8 @@ class state:
         self.df_yellow.plot.scatter(x=0, y=1, ax=axes)
         self.df_big.plot.scatter(x=0, y=1, ax=axes)
 
+        with open('map_outfile', 'wb') as fp:
+            pickle.dump(self.map, fp)
         for i, lm in enumerate(self.map):
             if self.colour[i] == "BLUE":
                 axes.scatter(lm[0] + x_off, lm[1]+y_off, marker="x", c="b")
