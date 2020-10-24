@@ -216,7 +216,8 @@ void ekfslam::odomclb(const nav_msgs::Odometry &data){
 	// }
 	odom_time_prev = odom_time;
 	z = Eigen::MatrixXf::Zero(5,1);
-
+	double x = data.pose.pose.position.x;
+	double y = data.pose.pose.position.y;
 	geometry_msgs::Quaternion q = data.pose.pose.orientation;
 	tf::Quaternion quat;
     tf::quaternionMsgToTF(q, quat);
@@ -224,8 +225,7 @@ void ekfslam::odomclb(const nav_msgs::Odometry &data){
     // the tf::Quaternion has a method to acess roll pitch and yaw
     double roll, pitch, yaw;
     tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-	double x_pos = data.pose.pose.position.x + COG_OFFSET * cos(yaw);
-	double y_pos = data.pose.pose.position.y - COG_OFFSET * sin(yaw);
+
     // the found angles are written in a geometry_msgs::Vector3
     geometry_msgs::Vector3 rpy;
     rpy.x = roll;
@@ -237,9 +237,10 @@ void ekfslam::odomclb(const nav_msgs::Odometry &data){
 	y_d = data.twist.twist.linear.y;
 	double v = sqrt(x_d*x_d + y_d * y_d);
 	double omega = data.twist.twist.angular.z;
-	z(0,0) = x_pos; 
-	z(1,0) = y_pos; 
+	z(0,0) = x; 
+	z(1,0) = y; 
 	z(2,0) = pi2pi(yaw);
+
 	z(3,0) = v; 
 	z(4,0) = omega; 
 	
@@ -259,7 +260,12 @@ void ekfslam::odomUpdate()
 	ekfslam::UpdateCovariance();
 
 	y = Eigen::MatrixXf::Zero(5,1);
+
+
 	y = px - z;
+
+	ROS_INFO("Odom innovation"); 
+	printEigenMatrix(y);
 	y(2,0) = pi2pi(y(2,0)); 
 	H = Eigen::MatrixXf::Identity(5,STATE_SIZE + LM_SIZE * lm_num);
 	// for (int i = 0; i<lm_num; i++){
@@ -269,7 +275,7 @@ void ekfslam::odomUpdate()
 	K = Eigen::MatrixXf::Zero(5,5);
 	Eigen::MatrixXf k_tmp; 
 	Eigen::MatrixXf Q_small; 
-	Q_small = Eigen::MatrixXf::Identity(5, 5) * 0.1;
+	Q_small = Eigen::MatrixXf::Identity(5, 5) * 0.005;
 	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 	K = pcv * H.transpose() * k_tmp;
 
@@ -308,7 +314,7 @@ void ekfslam::runnableTrigger(int reading_type)
 
 	// ROS_INFO("Measurements: %d ",newMeasurements);
 	for (int i = 0; i<newMeasurements; i++){
-		// Q = 0.1 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
+		Q = 0.01 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
 		// pcv = Q + pcv;
 		// ROS_INFO("New measurement");
 		// do data association
@@ -387,15 +393,13 @@ void ekfslam::runnableTrigger(int reading_type)
 		F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
 
 		H_j(0,0) = -1;
-
-		H_j(0,2) = -xr * sin(theta_p) - cos(theta_p); 
+		// H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
 
 		H_j(0,STATE_SIZE) = cos(theta_p);
 		H_j(0,STATE_SIZE+1) = -sin(theta_p);
-
 			
 		H_j(1,1) = -1;
-		H_j(1,2) = cos(theta_p) -  sin(theta_p);
+		// H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
 		H_j(1,STATE_SIZE) = sin(theta_p);
 		H_j(1,STATE_SIZE+1) = cos(theta_p);
 		H = Eigen::MatrixXf::Zero(2,7);
@@ -423,7 +427,7 @@ void ekfslam::runnableTrigger(int reading_type)
 		// printEigenMatrix(K);
 
 
-		px = px +  K*y;
+		px = px + K*y;
 		// printf("px");
 		// printEigenMatrix(px);
 
@@ -431,12 +435,18 @@ void ekfslam::runnableTrigger(int reading_type)
 		pcv = (I - K * H) * pcv;  
 		// printf("Pcv");
 		// printEigenMatrix(pcv);
+		px(2,0) = pi2pi(px(2,0));
 	}
 	x = px;
 	x(2,0) = pi2pi(x(2,0)); 
 	cv = pcv;
 	// ROS_INFO("Map Published: %ld", ros::Time::now().toNSec());
+	// printf("X"); 
+	// printEigenMatrix(x);
+	// printf("CV"); 
+	// printEigenMatrix(cv);
 	
+
 	publishTrack();
 	publishPose(); 
 }
@@ -550,8 +560,10 @@ void ekfslam::runnableStableRate()
 			H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
 
 			H_j(0,STATE_SIZE) = cos(theta_p);
-			H_j(0,STATE_SIZE+1) = -sin(theta_p);
+			H_j(0,STATE_SIZE+1) = sin(theta_p);
 
+			H_j(0,STATE_SIZE) = cos(theta_p);
+			H_j(0,STATE_SIZE+1) = -sin(theta_p);
 			 
 			H_j(1,1) = -1;
 			H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
@@ -593,10 +605,10 @@ void ekfslam::runnableStableRate()
 		}
 		x = px; 
 		cv = pcv;
-		printf("X"); 
-		printEigenMatrix(x);
-		printf("CV"); 
-		printEigenMatrix(cv);
+		// printf("X"); 
+		// printEigenMatrix(x);
+		// printf("CV"); 
+		// printEigenMatrix(cv);
 		
 
 		publishTrack();
@@ -620,7 +632,7 @@ void  ekfslam::motionModel()
 		model for higher speeds Where non-linearities become significant.
 	*/
 	double theta = x(2,0);
-	double v = u(0,0);; 
+	double v = x(3,0); 
 	double theta_dot =x(4,0);
 	px(0,0) = x(0,0) + dt * v * cos(theta); 
 	px(1,0) = x(1,0) + dt * v * sin(theta);

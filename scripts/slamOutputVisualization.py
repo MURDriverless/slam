@@ -96,14 +96,14 @@ class state:
             os.makedirs(results_dir)
 
         # print(my_path)
-        fileName = results_dir+"SlamOutput" + str(time)+".png"
+        fileName = results_dir+"SlamOutput" + str(time)+".pdf"
         plt.savefig(fileName)
 
 
 if __name__ == "__main__":
     rospy.init_node('slamOutputVisualization')
     st = state()
-    ros_rate = rospy.Rate(0.3)
+    ros_rate = rospy.Rate(1)
     while(not rospy.is_shutdown()):
         st.plotting()
         ros_rate.sleep()

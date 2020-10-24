@@ -35,7 +35,7 @@
 #define BIG_STR "BIG"
 #define UNKNOWN_STR "na"
 
-#define LIDAR_OFFSET_X 1.17
+#define LIDAR_OFFSET_X 1.71
 #define COG_OFFSET 0.0
 
 #define PUBLISH_MARKERS
