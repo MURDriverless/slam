@@ -86,6 +86,8 @@ class state:
 
         plt.plot(self.true_x, self.true_y, c="b")
 
+        with open('map_outfile', 'wb') as fp:
+            pickle.dump(self.map, fp)
         plt.xlabel("X position (m)")
         plt.ylabel("Y position (m)")
 
