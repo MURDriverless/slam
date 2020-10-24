@@ -23,6 +23,7 @@ class state:
     def __init__(self):
         self.map = []
         self.true_x = []
+        self.legendDone = False
         self.true_y = []
         self.poseEst = robot()
         self.mapSub = rospy.Subscriber(
@@ -66,15 +67,23 @@ class state:
         axes = plt.gca()
         # plt.arrow(x, y,  math.cos(theta),
         #           math.sin(theta), head_width=0.05, head_length=0.1, fc='b', ec='b')
-        self.df_blue.plot.scatter(x=0, y=1, ax=axes)
-        self.df_yellow.plot.scatter(x=0, y=1, ax=axes)
-        self.df_big.plot.scatter(x=0, y=1, ax=axes)
+        # print(self.df_big.values())
+
+        self.df_blue.plot.scatter(
+            x=0, y=1, ax=axes, s=80, c='none', edgecolors='b', label="True Cone Pose")
+        self.df_yellow.plot.scatter(
+            x=0, y=1, ax=axes, s=80, c='none', edgecolors='y')
+        self.df_big.plot.scatter(
+            x=0, y=1, ax=axes, s=80, c='none', edgecolors='orange')
 
         with open('map_outfile', 'wb') as fp:
             pickle.dump(self.map, fp)
+
         for i, lm in enumerate(self.map):
+            self.legendDone = True
             if self.colour[i] == "BLUE":
-                axes.scatter(lm[0] + x_off, lm[1]+y_off, marker="x", c="b")
+                axes.scatter(lm[0] + x_off, lm[1]+y_off,
+                             marker="x", c="b", label="Estimated Cone Pose")
             if self.colour[i] == "YELLOW":
                 axes.scatter(lm[0] + x_off, lm[1]+y_off, marker="x", c="y")
             if self.colour[i] == "BIG" or self.colour[i] == "ORANGE":
@@ -82,17 +91,18 @@ class state:
                              marker="x", color='orange')
             else:
                 pass
-        plt.plot(self.poseEst.x, self.poseEst.y, c="r")
+        axes.plot(self.poseEst.x, self.poseEst.y,
+                  c="r", label="Estimated Pose")
 
-        plt.plot(self.true_x, self.true_y, c="b")
+        axes.plot(self.true_x, self.true_y, c="b", label="True Pose")
 
-        with open('map_outfile', 'wb') as fp:
-            pickle.dump(self.map, fp)
         plt.xlabel("X position (m)")
         plt.ylabel("Y position (m)")
+        # if not self.legendDone:
+        axes.legend()
 
-        plt.grid(True)
-        plt.pause(0.0001)
+        axes.grid(True)
+        plt.pause(0.001)
 
         time = rospy.Time.now()
         script_dir = os.path.dirname(__file__)
@@ -108,7 +118,7 @@ class state:
 if __name__ == "__main__":
     rospy.init_node('slamOutputVisualization')
     st = state()
-    ros_rate = rospy.Rate(1)
+    ros_rate = rospy.Rate(0.25)
     while(not rospy.is_shutdown()):
         st.plotting()
         ros_rate.sleep()
