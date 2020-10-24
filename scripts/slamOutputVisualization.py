@@ -65,9 +65,6 @@ class state:
         plt.figure(1)
         plt.cla()
         axes = plt.gca()
-        # plt.arrow(x, y,  math.cos(theta),
-        #           math.sin(theta), head_width=0.05, head_length=0.1, fc='b', ec='b')
-        # print(self.df_big.values())
 
         self.df_blue.plot.scatter(
             x=0, y=1, ax=axes, s=80, c='none', edgecolors='b', label="True Cone Pose")
@@ -78,12 +75,18 @@ class state:
 
         with open('map_outfile', 'wb') as fp:
             pickle.dump(self.map, fp)
+        blue_cone_x = []
+        blue_cone_y = []
+        yellow_cone_x = []
+        yellow_cone_y = []
+        big_cone_x = []
+        big_cone_y = []
 
         for i, lm in enumerate(self.map):
             self.legendDone = True
             if self.colour[i] == "BLUE":
-                axes.scatter(lm[0] + x_off, lm[1]+y_off,
-                             marker="x", c="b", label="Estimated Cone Pose")
+                blue_cone_x.append(lm[0]+x_off)
+                blue_cone_y.append(lm[1]+y_off)
             if self.colour[i] == "YELLOW":
                 axes.scatter(lm[0] + x_off, lm[1]+y_off, marker="x", c="y")
             if self.colour[i] == "BIG" or self.colour[i] == "ORANGE":
@@ -94,11 +97,13 @@ class state:
         axes.plot(self.poseEst.x, self.poseEst.y,
                   c="r", label="Estimated Pose")
 
+        axes.scatter(blue_cone_x, blue_cone_y,
+                     marker="x", c="b", label="Estimated Cone Pose")
+
         axes.plot(self.true_x, self.true_y, c="b", label="True Pose")
 
         plt.xlabel("X position (m)")
         plt.ylabel("Y position (m)")
-        # if not self.legendDone:
         axes.legend()
 
         axes.grid(True)
