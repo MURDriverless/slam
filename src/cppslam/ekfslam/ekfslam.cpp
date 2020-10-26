@@ -263,9 +263,6 @@ void ekfslam::odomUpdate()
 
 
 	y = px - z;
-
-	ROS_INFO("Odom innovation"); 
-	printEigenMatrix(y);
 	y(2,0) = pi2pi(y(2,0)); 
 	H = Eigen::MatrixXf::Identity(5,STATE_SIZE + LM_SIZE * lm_num);
 	// for (int i = 0; i<lm_num; i++){
@@ -661,6 +658,7 @@ void ekfslam::computeJacobian(){
 void ekfslam::ptcloudclbCam(const mur_common::cone_msg &data)
 {
 	// ROS_INFO("MessageRecieved: %ld", ros::Time::now().toNSec());
+	timeRecieved = ros::Time::now().toNSec();
 	int length_x = data.x.size();
 
 	// test here for length equality, otherwise bugs will occur. 
@@ -683,6 +681,7 @@ void ekfslam::ptcloudclbLidar(const mur_common::cone_msg &data)
 {
 	int length_x = data.x.size();
 	int length_y = data.y.size();
+	timeRecieved = ros::Time::now().toNSec();
 
 	// test here for length equality, otherwise bugs will occur. 
 	if (length_x == 0 || length_y == 0){
@@ -722,7 +721,13 @@ void ekfslam::publishTrack()
 	mur_common::cone_msg cone_msg;
 	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
+	double currentTime = current_time.toNSec();
+	ROS_INFO("timeReceived: %lf", timeRecieved);
+	ROS_INFO("currentTime: %lf", currentTime);
 
+	double latency = (currentTime-timeRecieved)/1000000000;
+
+	ROS_INFO("Latency, cones: %lf , %d", latency, lm_num);
 	cone_msg.header.frame_id = "map";
 	cone_msg.header.stamp = current_time;
 
