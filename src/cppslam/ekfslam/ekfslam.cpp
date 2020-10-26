@@ -722,12 +722,12 @@ void ekfslam::publishTrack()
 	if (lm_num == 0) return;
 	ros::Time current_time = ros::Time::now();
 	double currentTime = current_time.toNSec();
-	ROS_INFO("timeReceived: %lf", timeRecieved);
-	ROS_INFO("currentTime: %lf", currentTime);
+	// ROS_INFO("timeReceived: %lf", timeRecieved);
+	// ROS_INFO("currentTime: %lf", currentTime);
 
 	double latency = (currentTime-timeRecieved)/1000000000;
 
-	ROS_INFO("Latency, cones: %lf , %d", latency, lm_num);
+	ROS_INFO("Latency, cones, %lf , %d", latency, lm_num);
 	cone_msg.header.frame_id = "map";
 	cone_msg.header.stamp = current_time;
 
