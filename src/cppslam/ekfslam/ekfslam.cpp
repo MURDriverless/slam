@@ -93,7 +93,9 @@ ekfslam::ekfslam(ros::NodeHandle n, int state_size, int hz)
 	pcv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);// predicted Covariance
 	S = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE); // innovation covariance
 
-	x = Eigen::MatrixXf::Zero(STATE_SIZE,1); // state
+	x = Eigen::MatrixXf::Zero(STATE_SIZE,1); // small_state
+	xFull = Eigen::MatrixXf::Zero(STATE_SIZE,1); // Full state
+
 	cv = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE); //state covariance 
 	u = Eigen::MatrixXf::Zero(1,2); // Control
 	Q = 0.1 * Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
@@ -259,27 +261,47 @@ void ekfslam::odomUpdate()
 	
 	ekfslam::UpdateCovariance();
 
-	y = Eigen::MatrixXf::Zero(5,1);
+	y = Eigen::MatrixXf::Zero(STATE_SIZE,1);
 
+	Eigen::MatrixXf px_pose = Eigen::MatrixXf::Zero(STATE_SIZE,1);
+	for (int i = 0; i <STATE_SIZE; i++){
+		px_pose(i,0) = px(i,0);
+	}
 
-	y = px - z;
-	y(2,0) = pi2pi(y(2,0)); 
-	H = Eigen::MatrixXf::Identity(5,STATE_SIZE + LM_SIZE * lm_num);
+	y = px_pose - z;
+	y(2,0) = pi2pi(y(2,0));
+
+	H = Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
 	// for (int i = 0; i<lm_num; i++){
 	// 	H(0,STATE_SIZE + LM_SIZE * i) = -1;
 	// 	H(1,STATE_SIZE + LM_SIZE * i+1) = -1;
 	// }
-	K = Eigen::MatrixXf::Zero(5,5);
+	K = Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);
 	Eigen::MatrixXf k_tmp; 
 	Eigen::MatrixXf Q_small; 
-	Q_small = Eigen::MatrixXf::Identity(5, 5) * 0.005;
-	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
-	K = pcv * H.transpose() * k_tmp;
+	Q_small = Eigen::MatrixXf::Identity(5, 5) * 0.5;
+	Eigen::MatrixXf pcv_small= Eigen::MatrixXf::Zero(STATE_SIZE,STATE_SIZE);
+	for (int i = 0; i<STATE_SIZE;i++){
+		for (int j = 0; j<STATE_SIZE; j++){
+			pcv_small(i,j) = pcv(i,j);
+		}
+	}
+	k_tmp = (H * pcv_small * H.transpose() + Q_small).inverse();
 
-	px = px - K*y;
+	K = pcv_small * H.transpose() * k_tmp;
+
+	px_pose = px_pose - K*y;
+	for (int i = 0; i <STATE_SIZE; i++){
+		px(i,0) = px_pose(i,0);
+	}
 
 	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
-	pcv = (I - K * H) * pcv;
+	pcv_small = (I - K * H) * pcv_small;
+	for (int i = 0; i<STATE_SIZE;i++){
+		for (int j = 0; j<STATE_SIZE; j++){
+			pcv(i,j) = pcv_small(i,j);
+		}
+	}
 	x = px; 
 	x(2,0) = pi2pi(x(2,0));
 	publishPose();
@@ -592,8 +614,8 @@ void ekfslam::runnableStableRate()
 
 
 			px = px +  K*y;
-			// printf("px");
-			// printEigenMatrix(px);
+			printf("px");
+			printEigenMatrix(px);
 
 			Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 			pcv = (I - K * H) * pcv;  

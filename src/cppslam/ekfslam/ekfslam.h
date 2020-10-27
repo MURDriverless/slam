@@ -135,6 +135,7 @@ private:
 		std::string MARKER_ARRAY_TOPIC = "/map_markers";
 	#endif
 	// Arrays & vectors that define the EKF
+	Eigen::MatrixXf xFull; 
 	Eigen::MatrixXf px;	 // predicted mean
 	Eigen::MatrixXf pcv; // predicted Covariance
 
