@@ -30,13 +30,12 @@ class state:
             "/mur/slam/cones", cone_msg, self.mapClb, queue_size=1)
 
         script_dir = os.path.dirname(__file__)
-        file_path = script_dir + "/small_track_truth" + "/blue_cone.csv"
-        self.df_blue = pd.read_csv(file_path, header=None, usecols=[
-                                   0, 1])
+        file_path = script_dir + "/medium_track_truth" + "/blue_cone.csv"
+        self.df_blue = pd.read_csv(file_path, header=None, usecols=[0, 1])
 
-        file_path = script_dir + "/small_track_truth" + "/big_cone.csv"
+        file_path = script_dir + "/medium_track_truth" + "/big_cone.csv"
         self.df_big = pd.read_csv(file_path, header=None, usecols=[0, 1])
-        file_path = script_dir + "/small_track_truth" + "/yellow_cone.csv"
+        file_path = script_dir + "/medium_track_truth" + "/yellow_cone.csv"
         self.df_yellow = pd.read_csv(file_path, header=None, usecols=[0, 1])
 
         self.poseSub = rospy.Subscriber(
@@ -49,8 +48,8 @@ class state:
         self.true_y.append(pose.pose.pose.position.y)
 
     def poseclb(self, pose):
-        x_off = -13.0
-        y_off = 10.3
+        x_off = 62
+        y_off = 11.3
         self.poseEst.x.append(pose.pose.pose.position.x + x_off)
         self.poseEst.y.append(pose.pose.pose.position.y + y_off)
 
@@ -60,8 +59,8 @@ class state:
         return
 
     def plotting(self):
-        x_off = -13.0
-        y_off = 10.3
+        x_off = 62
+        y_off = 11.3
         plt.figure(1)
         plt.cla()
         axes = plt.gca()
@@ -104,6 +103,7 @@ class state:
 
         plt.xlabel("X position (m)")
         plt.ylabel("Y position (m)")
+	axes.set_aspect('equal')
         axes.legend()
 
         axes.grid(True)
