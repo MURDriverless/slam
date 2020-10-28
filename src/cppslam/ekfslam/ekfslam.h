@@ -22,6 +22,7 @@
 
 #define MAX_DISTANCE  2
 #define LM_SIZE 2
+#define DOWNSAMPLE_SIZE 50
 
 #define BLUE 0
 #define YELLOW 1

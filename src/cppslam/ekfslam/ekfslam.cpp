@@ -309,7 +309,7 @@ void ekfslam::odomUpdate()
 void ekfslam::runnableTrigger(int reading_type)
 {
 	int newMeasurements, idx, new_size, rows, colour;
-	double xlm, ylm, xr, yr, theta_p;
+	double xlm, ylm, xr, yr, theta_p=0;
 	dt = ros::Time::now().toSec() - time; 
 	time = ros::Time::now().toSec();
 	if (fabs(time - launchtime)< 2.5){
@@ -332,6 +332,14 @@ void ekfslam::runnableTrigger(int reading_type)
 	// printEigenMatrix(z);
 
 	// ROS_INFO("Measurements: %d ",newMeasurements);
+	Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
+	y = Eigen::MatrixXf::Zero(2*newMeasurements,1);
+	
+	if (newMeasurements==0){
+		// dont update
+		return;
+	}
+
 	for (int i = 0; i<newMeasurements; i++){
 		Q = 0.01 * Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows());
 		// pcv = Q + pcv;
@@ -394,15 +402,12 @@ void ekfslam::runnableTrigger(int reading_type)
 				
 				// ROS_INFO("Resizing complete");
 		}
-		y = Eigen::MatrixXf::Zero(2,1);
-		y(0,0) = xlm - (px(STATE_SIZE + idx * LM_SIZE, 0)); 
-		y(1,0) = ylm - (px(STATE_SIZE + idx * LM_SIZE + 1,0));
+		y(i,0) = xlm - (px(STATE_SIZE + idx * LM_SIZE, 0)); 
+		y(i+1,0) = ylm - (px(STATE_SIZE + idx * LM_SIZE + 1,0));
 
 		// printf("y");
 		// printEigenMatrix(y);	
 		// Compute sensor Jacobian and F matrix 
-		Eigen::MatrixXf F_j =   Eigen::MatrixXf::Zero(STATE_SIZE+LM_SIZE,STATE_SIZE + lm_num * LM_SIZE);
-		Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(LM_SIZE,STATE_SIZE+LM_SIZE);
 		F_j(0,0) = 1; 
 		F_j(1,1) = 1; 
 		F_j(2,2) = 1; 
@@ -410,52 +415,52 @@ void ekfslam::runnableTrigger(int reading_type)
 		F_j(4,4) = 1;
 		F_j(5,(idx)*LM_SIZE + STATE_SIZE) = 1;
 		F_j(6,(idx)*LM_SIZE + STATE_SIZE + 1) = 1;
+		}
+	Eigen::MatrixXf H_j =   Eigen::MatrixXf::Zero(LM_SIZE,STATE_SIZE+LM_SIZE);
+	H_j(0,0) = -1;
+	// H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
 
-		H_j(0,0) = -1;
-		// H_j(0,2) = -xr * sin(theta_p) - yr * cos(theta_p); 
+	H_j(0,STATE_SIZE) = cos(theta_p);
+	H_j(0,STATE_SIZE+1) = -sin(theta_p);
+		
+	H_j(1,1) = -1;
+	// H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
+	H_j(1,STATE_SIZE) = sin(theta_p);
+	H_j(1,STATE_SIZE+1) = cos(theta_p);
+	H = Eigen::MatrixXf::Zero(2,7);
+	H = H_j * F_j;
+	// printf("F_j");
+	// printEigenMatrix(F_j);
+	// printf("H_j");
 
-		H_j(0,STATE_SIZE) = cos(theta_p);
-		H_j(0,STATE_SIZE+1) = -sin(theta_p);
-			
-		H_j(1,1) = -1;
-		// H_j(1,2) = + xr * cos(theta_p) - yr * sin(theta_p);
-		H_j(1,STATE_SIZE) = sin(theta_p);
-		H_j(1,STATE_SIZE+1) = cos(theta_p);
-		H = Eigen::MatrixXf::Zero(2,7);
-		H = H_j * F_j;
-		// printf("F_j");
-		// printEigenMatrix(F_j);
-		// printf("H_j");
+	// printEigenMatrix(H_j);
+	// printf("H");
 
-		// printEigenMatrix(H_j);
-		// printf("H");
+	// printEigenMatrix(H);
+	// printf("Pcv");
+	// printEigenMatrix(pcv);
 
-		// printEigenMatrix(H);
-		// printf("Pcv");
-		// printEigenMatrix(pcv);
-
-		K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
-		Eigen::MatrixXf k_tmp; 
-		Eigen::MatrixXf Q_small; 
-		Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*25.0;
-		k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
-		// printf("K_temp");
-		// printEigenMatrix(k_tmp);
-		K = pcv * H.transpose() * k_tmp;
-		// printf("K");
-		// printEigenMatrix(K);
+	K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
+	Eigen::MatrixXf k_tmp; 
+	Eigen::MatrixXf Q_small; 
+	Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*25.0;
+	k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
+	// printf("K_temp");
+	// printEigenMatrix(k_tmp);
+	K = pcv * H.transpose() * k_tmp;
+	// printf("K");
+	// printEigenMatrix(K);
 
 
-		px = px + K*y;
-		// printf("px");
-		// printEigenMatrix(px);
+	px = px + K*y;
+	// printf("px");
+	// printEigenMatrix(px);
 
-		Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
-		pcv = (I - K * H) * pcv;  
-		// printf("Pcv");
-		// printEigenMatrix(pcv);
-		px(2,0) = pi2pi(px(2,0));
-	}
+	Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
+	pcv = (I - K * H) * pcv;  
+	// printf("Pcv");
+	// printEigenMatrix(pcv);
+	px(2,0) = pi2pi(px(2,0));
 	x = px;
 	x(2,0) = pi2pi(x(2,0)); 
 	cv = pcv;
@@ -534,6 +539,10 @@ void ekfslam::runnableStableRate()
 				colour = UNKNOWN;
 			}
 			coneColourFilter.update_measurement(idx,colour);
+			if (lm_num>DOWNSAMPLE_SIZE){
+				// Need to downsample the state space
+				
+			}
 			// ROS_INFO("Index: %d",idx);
 
 			if (idx >= lm_num){
@@ -604,7 +613,7 @@ void ekfslam::runnableStableRate()
 			K = Eigen::MatrixXf::Zero(STATE_SIZE + LM_SIZE,STATE_SIZE + LM_SIZE);
 			Eigen::MatrixXf k_tmp; 
 			Eigen::MatrixXf Q_small; 
-			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*10.0;
+			Q_small = Eigen::MatrixXf::Identity(LM_SIZE, LM_SIZE)*2.0;
 			k_tmp = (H * pcv * H.transpose() + Q_small).inverse();
 			// printf("K_temp");
 			// printEigenMatrix(k_tmp);
@@ -612,10 +621,7 @@ void ekfslam::runnableStableRate()
 			// printf("K");
 			// printEigenMatrix(K);
 
-
 			px = px +  K*y;
-			printf("px");
-			printEigenMatrix(px);
 
 			Eigen::MatrixXf I = Eigen::MatrixXf::Identity(pcv.rows(),pcv.rows()); 
 			pcv = (I - K * H) * pcv;  
