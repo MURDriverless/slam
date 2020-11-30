@@ -11,13 +11,15 @@ class particle
         cone get_landmark(int idx);
         
         Eigen::VectorXf get_p_pose();
-        Eigen::Matrix2d get_cov();
+        Eigen::MatrixXf get_cov();
 
-        void set_pose(Eigen::VectorXf new_pose); 
-        void set_cov(Eigen::Matrix2d new_cov);
+        void set_pose(Eigen::Vector4f new_pose); 
+        void set_cov(Eigen::Matrix4f new_cov);
                 
         int lm_size(); 
-
+        std::vector<cone>  get_landmarks();
+        std::vector<Eigen::Matrix2f> landmark_covariance; 
+    
     private:
         
         Eigen::VectorXf pose; 

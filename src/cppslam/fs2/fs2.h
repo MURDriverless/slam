@@ -14,6 +14,8 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include "geometry_msgs/Twist.h"
+#include "geometry_msgs/Accel.h"
+
 #include "../discreteBayesFilter/discreteBayes.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "visualization_msgs/Marker.h"
@@ -42,6 +44,9 @@
 
 #define COV_CONST 0.001
 
+#define HZ 20
+#define DT 1.0/HZ
+
 const double PI = 3.141592653589793238463;
 
 class fastslamtwo
@@ -50,14 +55,12 @@ class fastslamtwo
 
         fastslamtwo(ros::NodeHandle n, int state_size, int hz); 
         fastslamtwo(ros::NodeHandle n, int state_size);     
-        void run(Eigen::VectorXf z, Eigen::Vector2d u, double dt);
-    
+        void run(std::vector<Observation> Observations, Eigen::Vector2d u, double dt); 
     private:
         std::vector<std::vector<double>> calc_samp_dist(particle &p, std::vector<Observation> zs, Eigen::Vector2d u, double dt);
-        // cone predict_observation(cone lm, Eigen::VectorXf pose){
         std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, 5>> calculate_jacobians(cone lm, Eigen::VectorXf particle_pose);
-        Observation predict_observation(cone lm, Eigen::VectorXf pose)
-        // }
+
+        Observation predict_observation(cone lm, Eigen::VectorXf pose);
         ros::NodeHandle nh; 
 
         std::vector<particle> particles;
@@ -66,15 +69,17 @@ class fastslamtwo
         int launchPublishers();
         void initSubscribers();
 
-        void ptcloudclbCam(const mur_common::cone_msg &data);
-        void ptcloudclbLidar(const mur_common::cone_msg &data);
-        void odomclb(const nav_msgs::Odometry &data);
-        void controlclb(const geometry_msgs::Twist &data);
+        void steeringcallback(const geometry_msgs::Twist &data);
+        void accelerationcallback(const geometry_msgs::Accel &data);
+        void cameracallback(const mur_common::cone_msg &data);
+        void lidarcallback(const mur_common::cone_msg &data);
+        void odomcallback(const nav_msgs::Odometry &data);
         
     	ros::Subscriber camCld;
         ros::Subscriber lidarCld;
         ros::Subscriber odomSub;
-        ros::Subscriber controlSub;
+        ros::Subscriber steeringSub;
+        ros::Subscriber accelSub;
 
         ros::Publisher track;
         ros::Publisher pose;
@@ -85,8 +90,9 @@ class fastslamtwo
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
 		std::string FILTERED_TOPIC = "/mur/slam/cones";
 		std::string SLAM_POSE_TOPIC = "/mur/slam/Odom";
-		std::string CONTROL_TOPIC = "/mur/control/desired";
+		std::string STEERING_TOPIC = "/mur/control/desired";
 		std::string MARKER_ARRAY_TOPIC = "/mur/slam/map_markers";
+        std::string ACCEL_TOPIC     = "/mur/accel_desired";
 
         Eigen::Matrix2d m_R_T;
         Eigen::Matrix3d m_P_T;

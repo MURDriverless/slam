@@ -5,11 +5,12 @@
 
 fastslamtwo::fastslamtwo(ros::NodeHandle n, int state_size, int hz)
 {
-    this->m_R_T <<  1e-2,   0,
-                    0,      1e-3;
-    this->m_P_T <<  1e-3,   0,      0,
-                    0,      1e-3,   0,
-                    0,      0,      1e-3;
+    this->m_R_T <<  1e-3,   0,
+                0,      1e-3;
+    this->m_P_T <<  1e-3,   0,      0,  0,
+                    0,      1e-3,   0,  0,
+                    0,      0,   1e-3,   0,
+                    0,      0,      0,      1e-3;
 
     nh = n; 
     Eigen::MatrixXf cov_init = Eigen::MatrixXf::Identity(STATE_SIZE,STATE_SIZE);
@@ -35,8 +36,38 @@ void fastslamtwo::initSubscribers()
     launchPublishers();
     return;
 }
-void fastslamtwo::run(Eigen::VectorXf z, Eigen::Vector2d u, double dt)
+void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, double dt)
 {
+    for (particle &p : particles)
+    {
+        Eigen::Matrix4f cov_n_t_1 = p.get_cov();
+        Eigen::Vector4d s_predicted = predictMotion(p.get_p_pose(), u, DT); 
+
+        for(Observation z : Observations)
+        {
+            std::vector<float> pn;
+            for (cone mu : p.get_landmarks())
+            {
+                Observation z_pred = predict_observation(mu, s_predicted);
+
+                std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, STATE_SIZE>> out_jacob = calculate_jacobians(mu,  s_predicted);
+
+                Eigen::Matrix2d G_theta_n = out_jacob.first;
+
+                Eigen::Matrix<double, 2, STATE_SIZE> G_s_n = out_jacob.second;      
+
+                Eigen::Matrix2d Z_t_n = m_R_T + (G_theta_n * cov_n_t_1) * G_theta_n.transpose();
+
+                Eigen::Matrix2d Z_t_n_inv = Z_t_n.inverse();
+
+                Eigen::Matrix4f cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_st_n_1.inverse();
+
+                Eigen::Matrix4f cov_st_n = cov_st_n_inv.inverse();
+
+            }
+        }
+    }
+
     for (particle &p : particles) {
         auto likelihood = calc_samp_dist(p, z, u, dt);
         associate_data(p, likelihood, u, z, dt);
@@ -54,9 +85,11 @@ void fastslamtwo::run(Eigen::VectorXf z, Eigen::Vector2d u, double dt)
 }
 Observation fastslamtwo::predict_observation(cone lm, Eigen::VectorXf pose)
 {
-    Observation ret(lm.getCart()); 
-    ret.set_cov = lm.get_cov; 
+    Observation tmp(1.0,1.0,1); 
+    
+    return tmp;
 }
+
 std::vector<std::vector<double>> fastslamtwo::calc_samp_dist(particle &p, std::vector<Observation> zs, Eigen::Vector2d u, double dt)
 {   
     std::vector<std::vector<double>> likelihood; 
@@ -80,9 +113,9 @@ std::vector<std::vector<double>> fastslamtwo::calc_samp_dist(particle &p, std::v
         std::vector<double> likelihood_lm;
         Eigen::Matrix2d cov_n_t_1 = lm.get_cov();
 
-        Eigen::VectorXf mu_st_n_1 = p.get_p_pose();
+        Eigen::Vector4f mu_st_n_1 = p.get_p_pose();
         
-        Eigen::Matrix2d cov_st_n_1 = p.get_cov();
+        Eigen::Matrix4f cov_st_n_1 = p.get_cov();
 
         for (uint z_i = 0; z_i < zs.size(); ++z_i) {
             Observation z = zs[z_i];
@@ -99,7 +132,8 @@ std::vector<std::vector<double>> fastslamtwo::calc_samp_dist(particle &p, std::v
 
             Eigen::Matrix2d Z_t_n_inv = Z_t_n.inverse();
 
-            Eigen::MatrixXf cov_st_n = ((G_s_n.transpose() * Z_t_n_inv) * G_s_n + cov_st_n_1.inverse()).inverse();
+            Eigen::Matrix4f cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_st_n_1.inverse();
+            Eigen::Matrix4f cov_st_n = cov_st_n_inv.inverse();
             
             p.set_cov(cov_st_n);
 
@@ -110,7 +144,8 @@ std::vector<std::vector<double>> fastslamtwo::calc_samp_dist(particle &p, std::v
             obs_diff1 << z.getR() - z_t_n_hat_polar(0), z.getT() - z_t_n_hat_polar(1);
 
             Eigen::VectorXf mu_st_n;
-            mu_st_n = mu_st_n_1 + ((cov_st_n * G_s_n.transpose()) * Z_t_n_inv) * obs_diff1; // TODO review this!
+
+            mu_st_n = mu_st_n + (cov_st_n * G_s_n.transpose()* Z_t_n_inv) * obs_diff1;
         }
 
         //////////////////////////////
@@ -176,11 +211,12 @@ std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, 5>> fastslamtwo::calculate_j
 }
 int fastslamtwo::launchSubscribers(){
 	try {
-	odomSub = nh.subscribe(ODOM_TOPIC, 3, &fastslamtwo::odomclb, this);
-	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &fastslamtwo::ptcloudclbCam, this);
-	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &fastslamtwo::ptcloudclbLidar, this);
-	controlSub = nh.subscribe(CONTROL_TOPIC, QUE_SIZE, &fastslamtwo::controlclb, this); 
-	}
+	odomSub = nh.subscribe(ODOM_TOPIC, 3, &fastslamtwo::odomcallback, this);
+	camCld = nh.subscribe(CAM_TOPIC, QUE_SIZE, &fastslamtwo::cameracallback, this);
+	lidarCld = nh.subscribe(LIDAR_TOPIC, QUE_SIZE, &fastslamtwo::lidarcallback, this);
+	steeringSub = nh.subscribe(STEERING_TOPIC, QUE_SIZE, &fastslamtwo::steeringcallback, this); 
+	accelSub = nh.subscribe(ACCEL_TOPIC, QUE_SIZE, &fastslamtwo::accelerationcallback, this);
+    }
 	catch (const char *msg){
 		ROS_ERROR_STREAM(msg);
 		return 0; // failure
@@ -202,20 +238,25 @@ int fastslamtwo::launchPublishers(){
 	return 1; 
 }
 
-void fastslamtwo::controlclb(const geometry_msgs::Twist &data)
+void fastslamtwo::steeringcallback(const geometry_msgs::Twist &data)
 {
 
 }
-void fastslamtwo::ptcloudclbCam(const mur_common::cone_msg &data)
+void fastslamtwo::accelerationcallback(const geometry_msgs::Accel &data)
 {
 
 }
-void fastslamtwo::ptcloudclbLidar(const mur_common::cone_msg &data)
+
+void fastslamtwo::cameracallback(const mur_common::cone_msg &data)
 {
 
 }
-void fastslamtwo::odomclb(const nav_msgs::Odometry &data)
+void fastslamtwo::lidarcallback(const mur_common::cone_msg &data)
 {
-    
+
+}
+void fastslamtwo::odomcallback(const nav_msgs::Odometry &data)
+{
+
 }
 #endif 

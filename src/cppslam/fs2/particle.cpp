@@ -17,11 +17,11 @@ void particle::set_pose(Eigen::VectorXf new_pose)
     pose = new_pose;
 }
 
-void particle::set_cov(Eigen::Matrix2d new_cov)
+void particle::set_cov(Eigen::Matrix4f new_cov)
 {
     cov = new_cov;
 }
-Eigen::Matrix2d particle::get_cov()
+Eigen::Matrix4f particle::get_cov()
 {
     return cov;
 }
@@ -35,4 +35,10 @@ cone particle::get_landmark(int idx)
 {
     return landmarks[idx];
 }
+
+std::vector<cone>  particle::get_landmarks()
+{
+    return landmarks;
+}
+
 #endif 
