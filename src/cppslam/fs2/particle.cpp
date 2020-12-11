@@ -8,11 +8,16 @@ particle::particle(double weight_0,Eigen::MatrixXf cov)
     return;
 }
 
-Eigen::VectorXf particle::get_p_pose()
+void particle::set_weight(double w)
+{
+    weight = w;
+}
+
+Eigen::Vector4f particle::get_p_pose()
 {
     return pose;
 }
-void particle::set_pose(Eigen::VectorXf new_pose)
+void particle::set_pose(Eigen::Vector4f new_pose)
 {
     pose = new_pose;
 }
@@ -41,4 +46,10 @@ std::vector<cone>  particle::get_landmarks()
     return landmarks;
 }
 
+void particle::add_new_lm(cone new_lm, Matrix2f cov)
+{
+    landmarks.push_back(new_lm); 
+    landmark_covariance.push_back(cov);
+    return ;
+}
 #endif 

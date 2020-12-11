@@ -49,6 +49,14 @@ add_library(ekf src/cppslam/ekfslam/ekfslam.cpp)
 add_library(discreteBayes src/cppslam/discreteBayesFilter/discreteBayes.cpp)
 add_library(point src/cppslam/point/point.cpp)
 
+add_library(fs2 src/cppslam/fs2/fs2.cpp)
+add_library(cone src/cppslam/fs2/cone.cpp)
+add_library(particle src/cppslam/fs2/particle.cpp)
+add_library(observation src/cppslam/fs2/Observation.cpp)
+
+target_link_libraries(particle ${catkin_LIBRARIES} cone)
+target_link_libraries(fs2 ${catkin_LIBRARIES} cone particle observation)
+
 target_link_libraries(slamNode ${catkin_LIBRARIES} ekf discreteBayes)
 
 add_dependencies(slamNode ${catkin_EXPORTED_TARGETS})

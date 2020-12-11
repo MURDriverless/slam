@@ -10,6 +10,7 @@
 #include "mur_common/cone_msg.h"
 #include <cassert>
 #include <vector>
+#include <algorithm>
 #include "../point/point.h"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
@@ -47,6 +48,8 @@
 #define HZ 20
 #define DT 1.0/HZ
 
+#define P0 0.001
+
 const double PI = 3.141592653589793238463;
 
 class fastslamtwo
@@ -61,6 +64,8 @@ class fastslamtwo
         std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, 5>> calculate_jacobians(cone lm, Eigen::VectorXf particle_pose);
 
         Observation predict_observation(cone lm, Eigen::VectorXf pose);
+        cone predict_observation_inverse(Observation z, Eigen::VectorXf pose);
+        
         ros::NodeHandle nh; 
 
         std::vector<particle> particles;

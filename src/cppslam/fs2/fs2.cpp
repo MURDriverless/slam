@@ -43,6 +43,8 @@ void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, 
         Eigen::Matrix4f cov_n_t_1 = p.get_cov();
         Eigen::Vector4d s_predicted = predictMotion(p.get_p_pose(), u, DT); 
 
+        std::vector<int> association; 
+
         for(Observation z : Observations)
         {
             std::vector<float> pn;
@@ -60,11 +62,47 @@ void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, 
 
                 Eigen::Matrix2d Z_t_n_inv = Z_t_n.inverse();
 
-                Eigen::Matrix4f cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_st_n_1.inverse();
+                Eigen::Matrix4f cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_n_t_1.inverse();
 
-                Eigen::Matrix4f cov_st_n = cov_st_n_inv.inverse();
+                Eigen::Matrix4f cov_n_t_1 = cov_st_n_inv.inverse();
 
+                Eigen::Vector4f mu_st_n = s_predicted + cov_n_t_1 * G_s_n.transpose() * Z_t_n * (z.getPolar()-z_pred.getPolar());
+
+                Eigen::MatrixXf y = mu.get_polar()- predict_observation(mu, mu_st_n);
+
+                double p = 1.0/sqrt(2* PI * Z_t_n.determinant()) * exp( (y.transpose()) * Z_t_n_inv * (y));
+                
+                pn.push_back(p);
             }
+
+            pn.push_back(P_0)
+
+            int max_idx = std::max_element(pn.begin(),pn.end()) - pn.begin();
+
+            association.push_back(max_idx);
+        }
+
+        for (int i = 0; i<association.size(); i++)
+        {
+            if (association[i] > p.get_landmarks().size())
+            {
+                Observation new_observation= Observations[i];
+
+                cone new_cone = predict_observation_inverse(new_observation, p.get_p_pose())
+
+                std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, STATE_SIZE>> out_jacob = calculate_jacobians(new_cone,p.get_p_pose());
+
+                Eigen::Matrix2d G_theta_n = out_jacob.first;
+                Matrix2f cov = G_theta_n.inverse() * m_R_T * G_theta_n;
+                p.add_new_lm(new_cone,cov);
+
+                p.set_weight(1/M);                
+            }
+            else
+            {
+                
+            }
+            
         }
     }
 
@@ -83,11 +121,19 @@ void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, 
     mean_pose = mean_pose / particles.size();
     return;
 }
+
 Observation fastslamtwo::predict_observation(cone lm, Eigen::VectorXf pose)
 {
     Observation tmp(1.0,1.0,1); 
-    
+    assert(0);    
     return tmp;
+}
+
+cone fastslamtwo::predict_observation_inverse(Observation z, Eigen::VectorXf pose)
+{
+    cone cn; 
+    assert(0);
+    return cn;
 }
 
 std::vector<std::vector<double>> fastslamtwo::calc_samp_dist(particle &p, std::vector<Observation> zs, Eigen::Vector2d u, double dt)
@@ -226,16 +272,11 @@ int fastslamtwo::launchSubscribers(){
 }
 
 int fastslamtwo::launchPublishers(){
-	try {
+
 	track = nh.advertise<mur_common::cone_msg>(FILTERED_TOPIC, QUE_SIZE); 
 	pose = nh.advertise<nav_msgs::Odometry>(SLAM_POSE_TOPIC, QUE_SIZE);
 	track_markers = nh.advertise<visualization_msgs::MarkerArray>(MARKER_ARRAY_TOPIC, QUE_SIZE);
-	}
-	catch(const char *msg){
-		ROS_ERROR_STREAM(msg);
-		return 0; //failure
-	}
-	return 1; 
+
 }
 
 void fastslamtwo::steeringcallback(const geometry_msgs::Twist &data)

@@ -1,5 +1,6 @@
 #ifndef EKF_H
 #define EFK_H
+
 #include "ros/ros.h"
 #include <math.h>
 #include <Eigen/Dense>
@@ -115,7 +116,6 @@ private:
 	#ifdef SIMULATED_MODE
 		// std::string ODOM_TOPIC = "/mur/Odom";
 		std::string ODOM_TOPIC = "odom";
-		
 		std::string CAM_TOPIC = "/camera/cones";
 		std::string LIDAR_TOPIC = "/conepose/cone_messages_sim";
 		std::string FILTERED_TOPIC = "/mur/slam/cones";
