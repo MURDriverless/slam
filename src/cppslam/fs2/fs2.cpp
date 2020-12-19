@@ -40,7 +40,7 @@ void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, 
 {
     for (particle &p : particles)
     {
-        Eigen::Matrix4f cov_n_t_1 = p.get_cov();
+        Eigen::Matrix4d cov_n_t_1 = p.get_cov();
         Eigen::Vector4d s_predicted = predictMotion(p.get_p_pose(), u, DT); 
 
         std::vector<int> association; 
@@ -62,9 +62,9 @@ void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, 
 
                 Eigen::Matrix2d Z_t_n_inv = Z_t_n.inverse();
 
-                Eigen::Matrix4f cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_n_t_1.inverse();
+                Eigen::Matrix4d cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_n_t_1.inverse();
 
-                Eigen::Matrix4f cov_n_t_1 = cov_st_n_inv.inverse();
+                Eigen::Matrix4d cov_n_t_1 = cov_st_n_inv.inverse();
 
                 Eigen::Vector4f mu_st_n = s_predicted + cov_n_t_1 * G_s_n.transpose() * Z_t_n * (z.getPolar()-z_pred.getPolar());
 
@@ -93,32 +93,39 @@ void fastslamtwo::run(std::vector<Observation> Observations, Eigen::Vector2d u, 
                 std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, STATE_SIZE>> out_jacob = calculate_jacobians(new_cone,p.get_p_pose());
 
                 Eigen::Matrix2d G_theta_n = out_jacob.first;
-                Matrix2f cov = G_theta_n.inverse() * m_R_T * G_theta_n;
-                p.add_new_lm(new_cone,cov);
 
-                p.set_weight(1/M);                
+                Matrix2d cov = G_theta_n.transpose() * m_R_T.inverse() * G_theta_n;
+
+                p.add_new_lm(new_cone,cov.inverse());
+
+                p.set_weight(P_0);                
             }
             else
             {
+                std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, STATE_SIZE>> out_jacob = calculate_jacobians(new_cone,p.get_p_pose());
+
+                Eigen::Matrix2d G_theta_n = out_jacob.first;
+
+                Eigen::Matrix<double, 2, STATE_SIZE> G_s_n = out_jacob.second;      
+
+                Eigen::Matrix2d Z_t_n = m_R_T + (G_theta_n * cov_n_t_1) * G_theta_n.transpose();
+
+		        Eigen::Matrix2d K = p.get_landmark_covariance(max_idx) * G_theta_n * Z_t_n.inverse();
                 
+                Eigen::Vector2d y = mu.get_polar()- predict_observation(mu, mu_st_n);
+
+                Eigen::Vector2d mu_n_hat = p.get_landmark(max_idx).get_polar() + K * (y);
+
+                Eigen::Matrix2d cov_n_t = (Eigen::Matrix2d::Identity() - K * G_theta_n) * p.get_landmark_covariance(max_idx);
+
+                p.update_landmark(mu_n_hat, cov_n_t);
+                
+                Eigen::Matrix2d L = G_s_n * p.get_cov() * G_s_n.transpose()  + G_theta_n * cov_n_t * G_theta_n + m_R_T;
             }
             
         }
     }
 
-    for (particle &p : particles) {
-        auto likelihood = calc_samp_dist(p, z, u, dt);
-        associate_data(p, likelihood, u, z, dt);
-    }
-
-    particles = resample(particles, M);
-
-    Eigen::VectorXf mean_pose = Eigen::VectorXf::Zero(STATE_SIZE);
-
-    for (particle p : particles) {
-        mean_pose = mean_pose + p.get_p_pose();
-    }
-    mean_pose = mean_pose / particles.size();
     return;
 }
 
@@ -136,102 +143,7 @@ cone fastslamtwo::predict_observation_inverse(Observation z, Eigen::VectorXf pos
     return cn;
 }
 
-std::vector<std::vector<double>> fastslamtwo::calc_samp_dist(particle &p, std::vector<Observation> zs, Eigen::Vector2d u, double dt)
-{   
-    std::vector<std::vector<double>> likelihood; 
 
-    Eigen::VectorXf pose = p.get_p_pose();
-    
-    Eigen::VectorXf s_t_hat = predictMotion(pose, u, dt);
-
-    //update the pose of the particle.
-    p.set_pose(s_t_hat);
-    p.set_cov(m_P_T);
-
-    if (p.lm_size() == 0 || zs.size() == 0) {
-        return likelihood;
-    }
-
-    std::vector<double> max_ps(zs.size(), 0.0);
-
-    for (uint i = 0; i < p.lm_size(); i++){
-        cone lm = p.get_landmark(i);
-        std::vector<double> likelihood_lm;
-        Eigen::Matrix2d cov_n_t_1 = lm.get_cov();
-
-        Eigen::Vector4f mu_st_n_1 = p.get_p_pose();
-        
-        Eigen::Matrix4f cov_st_n_1 = p.get_cov();
-
-        for (uint z_i = 0; z_i < zs.size(); ++z_i) {
-            Observation z = zs[z_i];
-
-            Observation z_t_n_hat = predict_observation(lm, mu_st_n_1);
-
-            std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, STATE_SIZE>> out_jacob = calculate_jacobians(lm,  p.get_p_pose());
-
-            Eigen::Matrix2d G_theta_n = out_jacob.first;
-
-            Eigen::Matrix<double, 2, STATE_SIZE> G_s_n = out_jacob.second;
-
-            Eigen::Matrix2d Z_t_n = m_R_T + (G_theta_n * cov_n_t_1) * G_theta_n.transpose();
-
-            Eigen::Matrix2d Z_t_n_inv = Z_t_n.inverse();
-
-            Eigen::Matrix4f cov_st_n_inv = G_s_n.transpose() * Z_t_n_inv * G_s_n + cov_st_n_1.inverse();
-            Eigen::Matrix4f cov_st_n = cov_st_n_inv.inverse();
-            
-            p.set_cov(cov_st_n);
-
-            Eigen::Vector2d z_t_n_hat_polar = z_t_n_hat.getPolar();
-
-            Eigen::Matrix2d obs_diff1;
-
-            obs_diff1 << z.getR() - z_t_n_hat_polar(0), z.getT() - z_t_n_hat_polar(1);
-
-            Eigen::VectorXf mu_st_n;
-
-            mu_st_n = mu_st_n + (cov_st_n * G_s_n.transpose()* Z_t_n_inv) * obs_diff1;
-        }
-
-        //////////////////////////////
-            //sample from this distribution to update pose
-            Eigen::VectorXf sm_t_n;
-            sm_t_n = mutlivariate_gaussian(mu_st_n, cov_st_n); 
-
-            //calculate the data association likelihood, p
-            Coordinate zm_t_n = predict_observation(lm, sm_t_n);
-
-            std::pair<double, double> zm_t_n_polar = zm_t_n.get_polar();
-            Observation obs_diff{z.range - zm_t_n_polar.first, z.bearing - zm_t_n_polar.second};
-
-            //this is some sort of gaussian (3.40 in the springer book)
-            double exponent = ((obs_diff.toVec().transpose()*Z_t_n_inv)*obs_diff.toVec())(0, 0);
-            //std::cout << "exp: " << exponent << "\n";
-            double num = std::exp(-0.5 * exponent);
-            double den = std::sqrt( std::abs(2*M_PI* Z_t_n.determinant()));
-            double p_n = num / den;
-
-            //appending result
-            WeightedObservation result{p_n, {z_t_n_hat_polar.first, z_t_n_hat_polar.second}};
-            likelihood_lm.push_back(result);
-
-            if (p_n >= max_ps[z_i]) {
-                max_ps[z_i] = p_n;
-                p.set_sampled_pose(sm_t_n, i, z_i);
-                if (p_n > P_0) {
-                    p.set_pose(mu_st_n);
-                }
-            }
-        // } ///////////////////////////////// 
-
-
-        //append likelihood_lm to likelihood.
-        likelihood.push_back(likelihood_lm);
-    }
-
-    return likelihood;
-}
 std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, 5>> fastslamtwo::calculate_jacobians(cone lm, Eigen::VectorXf particle_pose) 
 {
     Eigen::Matrix2d G_theta;

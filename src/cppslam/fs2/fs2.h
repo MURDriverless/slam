@@ -61,7 +61,7 @@ class fastslamtwo
         void run(std::vector<Observation> Observations, Eigen::Vector2d u, double dt); 
     private:
         std::vector<std::vector<double>> calc_samp_dist(particle &p, std::vector<Observation> zs, Eigen::Vector2d u, double dt);
-        std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, 5>> calculate_jacobians(cone lm, Eigen::VectorXf particle_pose);
+        std::pair<Eigen::Matrix2d, Eigen::Matrix<double, 2, STATE_SIZE>> calculate_jacobians(cone lm, Eigen::VectorXf particle_pose);
 
         Observation predict_observation(cone lm, Eigen::VectorXf pose);
         cone predict_observation_inverse(Observation z, Eigen::VectorXf pose);

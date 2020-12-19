@@ -3,8 +3,9 @@
 
 #include "particle.h"
 
-particle::particle(double weight_0,Eigen::MatrixXf cov)
+particle::particle(double weight_0,Eigen::Matrix4f icov)
 {
+    cov = icov;
     return;
 }
 
@@ -40,16 +41,24 @@ cone particle::get_landmark(int idx)
 {
     return landmarks[idx];
 }
-
+Eigen::Matrix2f particle::get_landmark_covariance(int i )
+{
+    return landmark_covariance[i];
+}
 std::vector<cone>  particle::get_landmarks()
 {
     return landmarks;
 }
 
-void particle::add_new_lm(cone new_lm, Matrix2f cov)
+void particle::add_new_lm(cone new_lm, Eigen::Matrix2f cov)
 {
     landmarks.push_back(new_lm); 
     landmark_covariance.push_back(cov);
     return ;
+}
+
+void particle::update_landmark(int idx)
+{
+
 }
 #endif 

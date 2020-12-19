@@ -18,7 +18,8 @@ Eigen::Matrix2d cone::get_cov()
 Eigen::Vector2d cone::getCart()
 {
     Eigen::Vector2d ret; 
-    ret << x, y; 
+    ret << x, y;
+    return ret; 
 }
 Eigen::Vector2d  cone::get_polar()
 {
